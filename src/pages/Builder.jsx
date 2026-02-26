@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Plus, Trash2, Database } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Plus, Trash2, Database, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const Builder = () => {
-    const [data, setData] = useState({
+    const initialState = {
         personal: { name: '', email: '', phone: '', location: '' },
         summary: '',
         education: [],
@@ -10,16 +10,28 @@ const Builder = () => {
         projects: [],
         skills: '',
         links: { github: '', linkedin: '' }
-    });
+    };
+
+    // 1) Auto-save data: Load from localStorage
+    const savedData = localStorage.getItem('resumeBuilderData');
+    const [data, setData] = useState(savedData ? JSON.parse(savedData) : initialState);
+
+    // 1) Auto-save data: Save to localStorage on change
+    useEffect(() => {
+        localStorage.setItem('resumeBuilderData', JSON.stringify(data));
+    }, [data]);
 
     const loadSampleData = () => {
         setData({
             personal: { name: 'Jahnavi Guturi', email: 'jahnavi@example.com', phone: '+91 98765 43210', location: 'Bangalore, India' },
-            summary: 'Ambitious Software Engineer with a passion for building elegant, user-centric applications. Expert in React and modern CSS.',
+            summary: 'Ambitious Software Engineer with a passion for building elegant, user-centric applications. Expert in React and modern CSS. Over the last 4 years, I have delivered over 15 high-impact web solutions for various clients across the globe.',
             education: [{ school: 'KodNest Institute', degree: 'Full Stack Development', year: '2025' }],
-            experience: [{ company: 'Tech Innovators', position: 'Frontend Intern', duration: '2024 - Present', desc: 'Working on premium UI components.' }],
-            projects: [{ title: 'AI Resume Builder', desc: 'A premium tool for building ATS-friendly resumes.' }],
-            skills: 'React, Javascript, CSS, Node.js, Git',
+            experience: [{ company: 'Tech Innovators', position: 'Frontend Intern', duration: '2024 - Present', desc: 'Working on premium UI components. Improved load times by 20%.' }],
+            projects: [
+                { title: 'AI Resume Builder', desc: 'A premium tool for building ATS-friendly resumes with 100% accuracy.' },
+                { title: 'Job Notification System', desc: 'Real-time job alerts delivered to over 500 users weekly.' }
+            ],
+            skills: 'React, Javascript, CSS, Node.js, Git, TypeScript, SQL, AWS',
             links: { github: 'github.com/jahnaviguturi', linkedin: 'linkedin.com/in/jahnaviguturi' }
         });
     };
@@ -46,15 +58,86 @@ const Builder = () => {
         setData({ ...data, [type]: newList });
     };
 
+    // 3) ATS Score v1 Logic
+    const { score, appliedSuggestions } = useMemo(() => {
+        let currentScore = 0;
+        let suggestions = [];
+
+        // Summary length 40-120 words
+        const summaryWords = data.summary.trim() ? data.summary.trim().split(/\s+/).length : 0;
+        if (summaryWords >= 40 && summaryWords <= 120) {
+            currentScore += 15;
+        } else {
+            suggestions.push("Write a stronger summary (40–120 words).");
+        }
+
+        // Projects >= 2
+        if (data.projects.length >= 2) {
+            currentScore += 10;
+        } else {
+            suggestions.push("Add at least 2 projects.");
+        }
+
+        // Experience >= 1
+        if (data.experience.length >= 1) {
+            currentScore += 10;
+        } else {
+            suggestions.push("Add at least 1 experience entry.");
+        }
+
+        // Skills >= 8
+        const skillsCount = data.skills.split(',').filter(s => s.trim().length > 0).length;
+        if (skillsCount >= 8) {
+            currentScore += 10;
+        } else {
+            suggestions.push("Add more skills (target 8+).");
+        }
+
+        // Links exist
+        if (data.links.github.trim() || data.links.linkedin.trim()) {
+            currentScore += 10;
+        } else {
+            suggestions.push("Link GitHub or LinkedIn profile.");
+        }
+
+        // Measureable impact (numbers)
+        const hasNumbers = [...data.experience, ...data.projects].some(item =>
+            (item.desc && /[\d]+[%kX]/i.test(item.desc)) || (item.desc && /\d/.test(item.desc))
+        );
+        if (hasNumbers) {
+            currentScore += 15;
+        } else {
+            suggestions.push("Add measurable impact (numbers) in bullets.");
+        }
+
+        // Education complete
+        const eduComplete = data.education.length > 0 && data.education.every(edu => edu.school && edu.degree && edu.year);
+        if (eduComplete) {
+            currentScore += 10;
+        } else {
+            suggestions.push("Complete all fields in education section.");
+        }
+
+        // Final polish (Base score for having personal info)
+        if (data.personal.name && data.personal.email) currentScore += 20;
+
+        return { score: Math.min(currentScore, 100), appliedSuggestions: suggestions.slice(0, 3) };
+    }, [data]);
+
     return (
         <div className="builder-container">
             {/* Form Section */}
             <div className="builder-form">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                     <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Resume Details</h2>
-                    <button className="btn btn-outline" onClick={loadSampleData}>
-                        <Database size={16} /> Load Sample Data
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button className="btn btn-outline" onClick={() => setData(initialState)} style={{ color: 'var(--error)' }}>
+                            <Trash2 size={16} /> Clear All
+                        </button>
+                        <button className="btn btn-outline" onClick={loadSampleData}>
+                            <Database size={16} /> Load Sample Data
+                        </button>
+                    </div>
                 </div>
 
                 {/* Personal Info */}
@@ -84,6 +167,9 @@ const Builder = () => {
                 <section className="form-section">
                     <h3 className="form-section-title"><Database size={20} /> Professional Summary</h3>
                     <textarea className="textarea-field" placeholder="Briefly describe your career goals and expertise..." value={data.summary} onChange={(e) => setData({ ...data, summary: e.target.value })} />
+                    <p style={{ fontSize: '0.75rem', marginTop: '4px', color: 'var(--text-muted)' }}>
+                        Word count: {data.summary.trim() ? data.summary.trim().split(/\s+/).length : 0} (Target: 40-120)
+                    </p>
                 </section>
 
                 {/* Education */}
@@ -127,6 +213,29 @@ const Builder = () => {
                     ))}
                 </section>
 
+                {/* Projects */}
+                <section className="form-section">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 className="form-section-title" style={{ marginBottom: 0 }}><Zap size={20} /> Projects</h3>
+                        <button className="btn btn-outline" style={{ padding: '6px 12px' }} onClick={() => addItem('projects')}>
+                            <Plus size={16} /> Add
+                        </button>
+                    </div>
+                    {data.projects.map((item, i) => (
+                        <div key={i} className="repeater-item">
+                            <button onClick={() => removeItem('projects', i)} style={{ position: 'absolute', top: '12px', right: '12px', color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                            <div className="input-wrapper">
+                                <label className="label">Project Title</label>
+                                <input className="input-field" value={item.title} onChange={(e) => updateItem('projects', i, 'title', e.target.value)} />
+                            </div>
+                            <div className="input-wrapper" style={{ marginTop: '12px' }}>
+                                <label className="label">Description</label>
+                                <textarea className="textarea-field" style={{ minHeight: '60px' }} value={item.desc} onChange={(e) => updateItem('projects', i, 'desc', e.target.value)} />
+                            </div>
+                        </div>
+                    ))}
+                </section>
+
                 {/* Skills */}
                 <section className="form-section">
                     <h3 className="form-section-title"><Code size={20} /> Skills</h3>
@@ -153,8 +262,46 @@ const Builder = () => {
             </div>
 
             {/* Preview Section */}
-            <div className="builder-preview">
-                <div className="resume-sheet resume-preview-scale">
+            <div className="builder-preview" style={{ flexDirection: 'column', gap: '20px' }}>
+                {/* 3) ATS Score Meter */}
+                <div className="build-card glass" style={{ width: '100%', maxWidth: '210mm', marginBottom: '0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <p className="build-card-title">ATS Readiness Score</p>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                                <span style={{ fontSize: '2.5rem', fontWeight: 800, color: score > 80 ? 'var(--accent)' : score > 50 ? 'var(--primary)' : 'var(--error)' }}>
+                                    {score}
+                                </span>
+                                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>/ 100</span>
+                            </div>
+                        </div>
+                        <div style={{ width: '120px', height: '12px', background: 'var(--border)', borderRadius: '6px', overflow: 'hidden' }}>
+                            <div style={{ width: `${score}%`, height: '100%', background: score > 80 ? 'var(--accent)' : score > 50 ? 'var(--primary)' : 'var(--error)', transition: 'width 0.5s ease-out' }}></div>
+                        </div>
+                    </div>
+
+                    {/* 4) Suggestions */}
+                    {appliedSuggestions.length > 0 && (
+                        <div style={{ marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                            <p style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px' }}>Improvements Suggestions</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {appliedSuggestions.map((s, i) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem', color: 'var(--text-main)', fontWeight: 500 }}>
+                                        <AlertCircle size={14} style={{ color: 'var(--primary)' }} /> {s}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {appliedSuggestions.length === 0 && score === 100 && (
+                        <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', fontWeight: 600 }}>
+                            <CheckCircle2 size={16} /> Resume is ATS Optimized!
+                        </div>
+                    )}
+                </div>
+
+                {/* 2) Real Live Preview */}
+                <div className="resume-sheet resume-preview-scale" style={{ alignSelf: 'center' }}>
                     <header className="resume-header">
                         <h1 className="resume-name">{data.personal.name || 'Your Name'}</h1>
                         <div className="resume-contact">
@@ -162,12 +309,18 @@ const Builder = () => {
                             {data.personal.phone && <span>{data.personal.phone}</span>}
                             {data.personal.location && <span>{data.personal.location}</span>}
                         </div>
+                        {(data.links.github || data.links.linkedin) && (
+                            <div className="resume-contact" style={{ marginTop: '4px' }}>
+                                {data.links.github && <span>GitHub: {data.links.github}</span>}
+                                {data.links.linkedin && <span>LinkedIn: {data.links.linkedin}</span>}
+                            </div>
+                        )}
                     </header>
 
                     {data.summary && (
                         <div className="resume-section">
-                            <h2 className="resume-section-title">Professional Summary</h2>
-                            <p style={{ fontSize: '0.95rem' }}>{data.summary}</p>
+                            <h2 className="resume-section-title">Summary</h2>
+                            <p style={{ fontSize: '0.9rem', lineHeight: 1.6 }}>{data.summary}</p>
                         </div>
                     )}
 
@@ -177,11 +330,40 @@ const Builder = () => {
                             {data.experience.map((exp, i) => (
                                 <div key={i} className="resume-item">
                                     <div className="resume-item-header">
-                                        <span className="resume-item-title">{exp.company}</span>
+                                        <span className="resume-item-title">{exp.company || 'Company'}</span>
                                         <span className="resume-item-date">{exp.duration}</span>
                                     </div>
-                                    <div className="resume-item-subtitle">{exp.position}</div>
-                                    <p style={{ fontSize: '0.9rem', marginTop: '4px' }}>{exp.desc}</p>
+                                    <div className="resume-item-subtitle">{exp.position || 'Position'}</div>
+                                    <p style={{ fontSize: '0.85rem', marginTop: '4px', whiteSpace: 'pre-wrap' }}>{exp.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {data.projects.length > 0 && (
+                        <div className="resume-section">
+                            <h2 className="resume-section-title">Projects</h2>
+                            {data.projects.map((proj, i) => (
+                                <div key={i} className="resume-item">
+                                    <div className="resume-item-header">
+                                        <span className="resume-item-title">{proj.title || 'Project Title'}</span>
+                                    </div>
+                                    <p style={{ fontSize: '0.85rem', marginTop: '2px' }}>{proj.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {data.education.length > 0 && (
+                        <div className="resume-section">
+                            <h2 className="resume-section-title">Education</h2>
+                            {data.education.map((edu, i) => (
+                                <div key={i} className="resume-item">
+                                    <div className="resume-item-header">
+                                        <span className="resume-item-title">{edu.school || 'University'}</span>
+                                        <span className="resume-item-date">{edu.year}</span>
+                                    </div>
+                                    <div className="resume-item-subtitle">{edu.degree}</div>
                                 </div>
                             ))}
                         </div>
@@ -190,7 +372,7 @@ const Builder = () => {
                     {data.skills && (
                         <div className="resume-section">
                             <h2 className="resume-section-title">Skills</h2>
-                            <p style={{ fontSize: '0.95rem' }}>{data.skills}</p>
+                            <p style={{ fontSize: '0.9rem' }}>{data.skills}</p>
                         </div>
                     )}
                 </div>
