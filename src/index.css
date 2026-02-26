@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap');
+
 :root {
   --primary: #4f46e5;
   --primary-hover: #4338ca;
@@ -19,8 +21,6 @@
   --font-serif: 'Playfair Display', serif;
   --radius-lg: 16px;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap');
 
 * {
   box-sizing: border-box;

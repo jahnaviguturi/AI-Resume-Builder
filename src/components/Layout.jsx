@@ -55,7 +55,6 @@ const Layout = () => {
         if (currentStep > 1 && currentStep <= 8) {
             for (let i = 1; i < currentStep; i++) {
                 if (!localStorage.getItem(`rb_step_${i}_artifact`)) {
-                    const prevStep = i.toString().padStart(2, '0');
                     const routes = [
                         '01-problem', '02-market', '03-architecture', '04-hld',
                         '05-lld', '06-build', '07-test', '08-ship'
@@ -70,7 +69,6 @@ const Layout = () => {
         if (currentStep === 9) {
             for (let i = 1; i <= 8; i++) {
                 if (!localStorage.getItem(`rb_step_${i}_artifact`)) {
-                    const prevStep = i.toString().padStart(2, '0');
                     const routes = [
                         '01-problem', '02-market', '03-architecture', '04-hld',
                         '05-lld', '06-build', '07-test', '08-ship'
@@ -94,7 +92,6 @@ const Layout = () => {
 
     const handleNext = () => {
         if (currentStep < 8) {
-            const nextStep = (currentStep + 1).toString().padStart(2, '0');
             // Find next route
             const routes = [
                 '01-problem', '02-market', '03-architecture', '04-hld',
@@ -108,12 +105,11 @@ const Layout = () => {
 
     const handleBack = () => {
         if (currentStep > 1) {
-            const prevStepIndex = currentStep - 2;
             const routes = [
                 '01-problem', '02-market', '03-architecture', '04-hld',
                 '05-lld', '06-build', '07-test', '08-ship'
             ];
-            navigate(`/rb/${routes[prevStepIndex]}`);
+            navigate(`/rb/${routes[currentStep - 2]}`);
         }
     };
 
