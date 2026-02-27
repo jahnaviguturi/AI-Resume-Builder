@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Check, Download, Printer } from 'lucide-react';
+import { Layout, Check, Download, Printer, AlertTriangle, FileText } from 'lucide-react';
 
 const Preview = () => {
     // Load from localStorage
@@ -8,6 +8,7 @@ const Preview = () => {
 
     const savedTemplate = localStorage.getItem('resumeTemplate');
     const [template, setTemplate] = useState(savedTemplate || 'classic');
+    const [copySuccess, setCopySuccess] = useState(false);
 
     useEffect(() => {
         localStorage.setItem('resumeTemplate', template);
@@ -22,29 +23,87 @@ const Preview = () => {
         );
     }
 
+    // 1) Validation Hardening
+    const isIncomplete = !data.personal.name || (data.projects.length === 0 && data.experience.length === 0);
+
     const handlePrint = () => {
         window.print();
     };
 
-    return (
-        <div style={{ background: 'var(--bg-main)', minHeight: 'calc(100vh - 72px)', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    // 2) Copy Plain Text
+    const handleCopyText = () => {
+        let text = `${data.personal.name || 'NAME'}\n`;
+        text += `${data.personal.email} | ${data.personal.phone} | ${data.personal.location}\n`;
+        if (data.links.github || data.links.linkedin) {
+            text += `${data.links.github ? 'GitHub: ' + data.links.github : ''} ${data.links.linkedin ? ' | LinkedIn: ' + data.links.linkedin : ''}\n`;
+        }
 
-            {/* Template Selector for Preview */}
-            <div className="build-card" style={{ width: '100%', maxWidth: '210mm', marginBottom: '24px', padding: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div className="template-tabs" style={{ marginBottom: 0, width: '300px' }}>
+        text += `\nSUMMARY\n${data.summary}\n`;
+
+        if (data.experience.length > 0) {
+            text += `\nEXPERIENCE\n`;
+            data.experience.forEach(exp => {
+                text += `${exp.company} | ${exp.position} | ${exp.duration}\n${exp.desc}\n\n`;
+            });
+        }
+
+        if (data.projects.length > 0) {
+            text += `\nPROJECTS\n`;
+            data.projects.forEach(proj => {
+                text += `${proj.title}\n${proj.desc}\n\n`;
+            });
+        }
+
+        if (data.education.length > 0) {
+            text += `\nEDUCATION\n`;
+            data.education.forEach(edu => {
+                text += `${edu.school} | ${edu.degree} | ${edu.year}\n`;
+            });
+        }
+
+        if (data.skills) {
+            text += `\nSKILLS\n${data.skills}\n`;
+        }
+
+        navigator.clipboard.writeText(text);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+    };
+
+    return (
+        <div className="preview-container" style={{ background: 'var(--bg-main)', minHeight: 'calc(100vh - 72px)', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
+            {/* Validation Warning */}
+            {isIncomplete && (
+                <div className="build-card glass" style={{ width: '100%', maxWidth: '210mm', marginBottom: '20px', borderLeft: '4px solid var(--error)', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <AlertTriangle style={{ color: 'var(--error)' }} size={20} />
+                    <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.9rem' }}>Your resume may look incomplete. Add your name and at least one project/experience.</span>
+                </div>
+            )}
+
+            {/* Export Toolbar */}
+            <div className="build-card toolbar no-print" style={{ width: '100%', maxWidth: '210mm', marginBottom: '24px', padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                    <div className="template-tabs" style={{ marginBottom: 0, width: '280px' }}>
                         <button className={`template-tab ${template === 'classic' ? 'active' : ''}`} onClick={() => setTemplate('classic')}>Classic</button>
                         <button className={`template-tab ${template === 'modern' ? 'active' : ''}`} onClick={() => setTemplate('modern')}>Modern</button>
                         <button className={`template-tab ${template === 'minimal' ? 'active' : ''}`} onClick={() => setTemplate('minimal')}>Minimal</button>
                     </div>
-                    <button className="btn btn-primary" onClick={handlePrint}>
-                        <Printer size={16} /> Print / Save PDF
-                    </button>
+
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button className="btn btn-outline" onClick={handleCopyText}>
+                            {copySuccess ? <Check size={16} /> : <FileText size={16} />}
+                            {copySuccess ? 'Copied!' : 'Copy as Text'}
+                        </button>
+                        <button className="btn btn-primary" onClick={handlePrint}>
+                            <Printer size={16} /> Print / Save PDF
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Resume Sheet */}
-            <div className={`resume-sheet resume-${template}`} style={{ boxShadow: 'var(--shadow-lg)' }}>
+            <div id="resume-to-print" className={`resume-sheet resume-${template}`} style={{ boxShadow: 'var(--shadow-lg)' }}>
                 <header className="resume-header">
                     <h1 className="resume-name">{data.personal.name || 'Your Name'}</h1>
                     <div className="resume-contact">
@@ -63,7 +122,7 @@ const Preview = () => {
                 {data.summary && (
                     <div className="resume-section">
                         <h2 className="resume-section-title">Summary</h2>
-                        <p style={{ fontSize: '0.9rem', lineHeight: 1.6 }}>{data.summary}</p>
+                        <p className="resume-text">{data.summary}</p>
                     </div>
                 )}
 
@@ -71,13 +130,13 @@ const Preview = () => {
                     <div className="resume-section">
                         <h2 className="resume-section-title">Experience</h2>
                         {data.experience.map((exp, i) => (
-                            <div key={i} className="resume-item">
+                            <div key={i} className="resume-item avoid-break">
                                 <div className="resume-item-header">
                                     <span className="resume-item-title">{exp.company || 'Company'}</span>
                                     <span className="resume-item-date">{exp.duration}</span>
                                 </div>
                                 <div className="resume-item-subtitle">{exp.position || 'Position'}</div>
-                                <p style={{ fontSize: '0.85rem', marginTop: '4px', whiteSpace: 'pre-wrap' }}>{exp.desc}</p>
+                                <p className="resume-text" style={{ whiteSpace: 'pre-wrap' }}>{exp.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -87,11 +146,11 @@ const Preview = () => {
                     <div className="resume-section">
                         <h2 className="resume-section-title">Projects</h2>
                         {data.projects.map((proj, i) => (
-                            <div key={i} className="resume-item">
+                            <div key={i} className="resume-item avoid-break">
                                 <div className="resume-item-header">
                                     <span className="resume-item-title">{proj.title || 'Project Title'}</span>
                                 </div>
-                                <p style={{ fontSize: '0.85rem', marginTop: '2px' }}>{proj.desc}</p>
+                                <p className="resume-text">{proj.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -101,7 +160,7 @@ const Preview = () => {
                     <div className="resume-section">
                         <h2 className="resume-section-title">Education</h2>
                         {data.education.map((edu, i) => (
-                            <div key={i} className="resume-item">
+                            <div key={i} className="resume-item avoid-break">
                                 <div className="resume-item-header">
                                     <span className="resume-item-title">{edu.school || 'University'}</span>
                                     <span className="resume-item-date">{edu.year}</span>
@@ -115,7 +174,7 @@ const Preview = () => {
                 {data.skills && (
                     <div className="resume-section">
                         <h2 className="resume-section-title">Skills</h2>
-                        <p style={{ fontSize: '0.9rem' }}>{data.skills}</p>
+                        <p className="resume-text">{data.skills}</p>
                     </div>
                 )}
             </div>
@@ -123,18 +182,29 @@ const Preview = () => {
             <style>
                 {`
                 @media print {
-                    body * { visibility: hidden; }
-                    .resume-sheet, .resume-sheet * { visibility: visible; }
-                    .resume-sheet { 
-                        position: absolute; 
-                        left: 0; 
-                        top: 0; 
-                        width: 210mm;
-                        box-shadow: none;
-                        padding: 0;
-                        margin: 0;
+                    @page {
+                        margin: 15mm;
                     }
-                    .build-card, .app-nav { display: none !important; }
+                    body {
+                        background: white !important;
+                    }
+                    .no-print, .app-nav, .proof-footer {
+                        display: none !important;
+                    }
+                    .preview-container {
+                        padding: 0 !important;
+                        background: transparent !important;
+                    }
+                    .resume-sheet {
+                        box-shadow: none !important;
+                        margin: 0 !important;
+                        width: 100% !important;
+                        border: none !important;
+                        padding: 0 !important;
+                    }
+                    .avoid-break {
+                        page-break-inside: avoid;
+                    }
                 }
                 `}
             </style>

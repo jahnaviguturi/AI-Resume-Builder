@@ -400,6 +400,14 @@ body {
   font-weight: 600;
 }
 
+.resume-text {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-resume);
+  margin-top: 4px;
+  text-align: justify;
+}
+
 /* Template Specific Overrides */
 
 /* MODERN */
@@ -590,4 +598,45 @@ body {
   border-radius: 12px;
   margin-bottom: 16px;
   position: relative;
+}
+
+/* Layout Precision & Hardening */
+.glass {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.toolbar {
+  position: sticky;
+  top: 10px;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+.resume-sheet {
+  max-width: 210mm;
+  width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+  word-wrap: break-word;
+}
+
+.avoid-break {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.resume-header {
+  margin-bottom: 24px;
+}
+
+.resume-name {
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.resume-modern .resume-name {
+  text-align: left;
 }
