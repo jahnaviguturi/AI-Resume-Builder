@@ -400,6 +400,130 @@ body {
   font-weight: 600;
 }
 
+/* Template Specific Overrides */
+
+/* MODERN */
+.resume-modern .resume-header {
+  text-align: left;
+  border-bottom: 4px solid var(--accent-resume);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.resume-modern .resume-name {
+  font-family: inherit;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 3rem;
+  line-height: 0.9;
+  margin-bottom: 12px;
+}
+
+.resume-modern .resume-contact {
+  justify-content: flex-start;
+}
+
+.resume-modern .resume-section-title {
+  background: var(--bg-main);
+  padding: 6px 10px;
+  border-left: 4px solid var(--accent-resume);
+  border-bottom: none;
+}
+
+/* MINIMAL */
+.resume-minimal {
+  padding: 15mm;
+}
+
+.resume-minimal .resume-header {
+  text-align: left;
+  border-bottom: none;
+  margin-bottom: 30px;
+}
+
+.resume-minimal .resume-name {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.resume-minimal .resume-contact {
+  justify-content: flex-start;
+  font-size: 0.75rem;
+  gap: 12px;
+}
+
+.resume-minimal .resume-section-title {
+  font-size: 0.65rem;
+  border-bottom: 1px solid var(--text-resume);
+  color: var(--text-resume);
+}
+
+.resume-minimal .resume-item-title {
+  font-size: 0.9rem;
+}
+
+.resume-minimal .resume-item-subtitle {
+  font-size: 0.8rem;
+}
+
+/* Guidance & Improvement styles */
+.guidance-msg {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.improvement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.improvement-item {
+  background: var(--primary-light);
+  border-left: 3px solid var(--primary);
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.template-tabs {
+  display: flex;
+  background: var(--bg-main);
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.template-tab {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.template-tab.active {
+  background: white;
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
 /* Form Elements */
 .form-section {
   margin-bottom: 40px;

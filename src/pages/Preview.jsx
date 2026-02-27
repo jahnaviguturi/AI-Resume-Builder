@@ -1,71 +1,143 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Layout, Check, Download, Printer } from 'lucide-react';
 
 const Preview = () => {
-    // In a real app, we'd pull from state/store. For now, we'll demonstrate the clean layout.
-    const sample = {
-        personal: { name: 'JAHNAVI GUTURI', email: 'jahnavi@example.com', phone: '+91 98765 43210', location: 'Bangalore, India' },
-        summary: 'Strategic Software Engineer with extensive experience in architecting scalable web solutions. Proven track record of delivering premium user experiences through meticulous design and robust engineering practices.',
-        experience: [
-            { company: 'Global Tech Solutions', position: 'Senior Frontend Developer', duration: '2022 - PRESENT', desc: 'Leading the development of a flagship SaaS platform. Improved performance by 40% through code optimization and modern state management.' },
-            { company: 'Creative Digital Agency', position: 'Web Developer', duration: '2020 - 2022', desc: 'Developed high-performance websites for international clients. Focused on accessibility and responsive design.' }
-        ],
-        education: [
-            { school: 'National Institute of Technology', degree: 'Bachelor of Technology in Computer Science', year: '2020' }
-        ],
-        skills: 'React.js, TypeScript, Next.js, Node.js, GraphQL, Tailwind CSS, PostgreSQL, AWS, Docker, Git'
+    // Load from localStorage
+    const savedData = localStorage.getItem('resumeBuilderData');
+    const data = savedData ? JSON.parse(savedData) : null;
+
+    const savedTemplate = localStorage.getItem('resumeTemplate');
+    const [template, setTemplate] = useState(savedTemplate || 'classic');
+
+    useEffect(() => {
+        localStorage.setItem('resumeTemplate', template);
+    }, [template]);
+
+    if (!data) {
+        return (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+                <h2>No resume data found.</h2>
+                <p>Please go to the builder and enter your details.</p>
+            </div>
+        );
+    }
+
+    const handlePrint = () => {
+        window.print();
     };
 
     return (
-        <div style={{ background: 'var(--bg-main)', minHeight: 'calc(100vh - 72px)', padding: '60px 20px', display: 'flex', justifyContent: 'center' }}>
-            <div className="resume-sheet" style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.05)' }}>
-                <header className="resume-header" style={{ borderBottom: '3px solid #000' }}>
-                    <h1 className="resume-name" style={{ fontSize: '3rem', letterSpacing: '-0.05em' }}>{sample.personal.name}</h1>
-                    <div className="resume-contact" style={{ fontWeight: 600, color: '#000', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem' }}>
-                        <span>{sample.personal.email}</span>
-                        <span>•</span>
-                        <span>{sample.personal.phone}</span>
-                        <span>•</span>
-                        <span>{sample.personal.location}</span>
+        <div style={{ background: 'var(--bg-main)', minHeight: 'calc(100vh - 72px)', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
+            {/* Template Selector for Preview */}
+            <div className="build-card" style={{ width: '100%', maxWidth: '210mm', marginBottom: '24px', padding: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="template-tabs" style={{ marginBottom: 0, width: '300px' }}>
+                        <button className={`template-tab ${template === 'classic' ? 'active' : ''}`} onClick={() => setTemplate('classic')}>Classic</button>
+                        <button className={`template-tab ${template === 'modern' ? 'active' : ''}`} onClick={() => setTemplate('modern')}>Modern</button>
+                        <button className={`template-tab ${template === 'minimal' ? 'active' : ''}`} onClick={() => setTemplate('minimal')}>Minimal</button>
                     </div>
-                </header>
-
-                <div className="resume-section">
-                    <h2 className="resume-section-title" style={{ fontSize: '0.85rem', color: '#000' }}>Executive Summary</h2>
-                    <p style={{ fontSize: '1rem', color: '#333', textAlign: 'justify' }}>{sample.summary}</p>
-                </div>
-
-                <div className="resume-section">
-                    <h2 className="resume-section-title" style={{ fontSize: '0.85rem', color: '#000' }}>Professional Experience</h2>
-                    {sample.experience.map((exp, i) => (
-                        <div key={i} className="resume-item" style={{ marginBottom: i === sample.experience.length - 1 ? 0 : '20px' }}>
-                            <div className="resume-item-header">
-                                <span className="resume-item-title" style={{ fontSize: '1.1rem' }}>{exp.company}</span>
-                                <span className="resume-item-date">{exp.duration}</span>
-                            </div>
-                            <div className="resume-item-subtitle" style={{ color: '#000', fontWeight: 600, fontStyle: 'normal', textTransform: 'uppercase', fontSize: '0.8rem' }}>{exp.position}</div>
-                            <p style={{ fontSize: '0.95rem', color: '#444', marginTop: '6px' }}>{exp.desc}</p>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="resume-section">
-                    <h2 className="resume-section-title" style={{ fontSize: '0.85rem', color: '#000' }}>Academic Background</h2>
-                    {sample.education.map((edu, i) => (
-                        <div key={i} className="resume-item">
-                            <div className="resume-item-header">
-                                <span className="resume-item-title">{edu.school}</span>
-                                <span className="resume-item-date">{edu.year}</span>
-                            </div>
-                            <div className="resume-item-subtitle">{edu.degree}</div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="resume-section" style={{ marginBottom: 0 }}>
-                    <h2 className="resume-section-title" style={{ fontSize: '0.85rem', color: '#000' }}>Technical Proficiency</h2>
-                    <p style={{ fontSize: '1rem', color: '#333', fontWeight: 500 }}>{sample.skills}</p>
+                    <button className="btn btn-primary" onClick={handlePrint}>
+                        <Printer size={16} /> Print / Save PDF
+                    </button>
                 </div>
             </div>
+
+            {/* Resume Sheet */}
+            <div className={`resume-sheet resume-${template}`} style={{ boxShadow: 'var(--shadow-lg)' }}>
+                <header className="resume-header">
+                    <h1 className="resume-name">{data.personal.name || 'Your Name'}</h1>
+                    <div className="resume-contact">
+                        {data.personal.email && <span>{data.personal.email}</span>}
+                        {data.personal.phone && <span>{data.personal.phone}</span>}
+                        {data.personal.location && <span>{data.personal.location}</span>}
+                    </div>
+                    {(data.links.github || data.links.linkedin) && (
+                        <div className="resume-contact" style={{ marginTop: '4px' }}>
+                            {data.links.github && <span>GitHub: {data.links.github}</span>}
+                            {data.links.linkedin && <span>LinkedIn: {data.links.linkedin}</span>}
+                        </div>
+                    )}
+                </header>
+
+                {data.summary && (
+                    <div className="resume-section">
+                        <h2 className="resume-section-title">Summary</h2>
+                        <p style={{ fontSize: '0.9rem', lineHeight: 1.6 }}>{data.summary}</p>
+                    </div>
+                )}
+
+                {data.experience.length > 0 && (
+                    <div className="resume-section">
+                        <h2 className="resume-section-title">Experience</h2>
+                        {data.experience.map((exp, i) => (
+                            <div key={i} className="resume-item">
+                                <div className="resume-item-header">
+                                    <span className="resume-item-title">{exp.company || 'Company'}</span>
+                                    <span className="resume-item-date">{exp.duration}</span>
+                                </div>
+                                <div className="resume-item-subtitle">{exp.position || 'Position'}</div>
+                                <p style={{ fontSize: '0.85rem', marginTop: '4px', whiteSpace: 'pre-wrap' }}>{exp.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {data.projects.length > 0 && (
+                    <div className="resume-section">
+                        <h2 className="resume-section-title">Projects</h2>
+                        {data.projects.map((proj, i) => (
+                            <div key={i} className="resume-item">
+                                <div className="resume-item-header">
+                                    <span className="resume-item-title">{proj.title || 'Project Title'}</span>
+                                </div>
+                                <p style={{ fontSize: '0.85rem', marginTop: '2px' }}>{proj.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {data.education.length > 0 && (
+                    <div className="resume-section">
+                        <h2 className="resume-section-title">Education</h2>
+                        {data.education.map((edu, i) => (
+                            <div key={i} className="resume-item">
+                                <div className="resume-item-header">
+                                    <span className="resume-item-title">{edu.school || 'University'}</span>
+                                    <span className="resume-item-date">{edu.year}</span>
+                                </div>
+                                <div className="resume-item-subtitle">{edu.degree}</div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {data.skills && (
+                    <div className="resume-section">
+                        <h2 className="resume-section-title">Skills</h2>
+                        <p style={{ fontSize: '0.9rem' }}>{data.skills}</p>
+                    </div>
+                )}
+            </div>
+
+            <style>
+                {`
+                @media print {
+                    body * { visibility: hidden; }
+                    .resume-sheet, .resume-sheet * { visibility: visible; }
+                    .resume-sheet { 
+                        position: absolute; 
+                        left: 0; 
+                        top: 0; 
+                        width: 210mm;
+                        box-shadow: none;
+                        padding: 0;
+                        margin: 0;
+                    }
+                    .build-card, .app-nav { display: none !important; }
+                }
+                `}
+            </style>
         </div>
     );
 };

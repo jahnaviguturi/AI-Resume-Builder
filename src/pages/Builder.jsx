@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Plus, Trash2, Database, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Plus, Trash2, Database, Zap, AlertCircle, CheckCircle2, Layout, Sparkles, Wand2 } from 'lucide-react';
+
+const ACTION_VERBS = ['built', 'developed', 'designed', 'implemented', 'led', 'improved', 'created', 'optimized', 'automated'];
 
 const Builder = () => {
     const initialState = {
@@ -12,24 +14,31 @@ const Builder = () => {
         links: { github: '', linkedin: '' }
     };
 
-    // 1) Auto-save data: Load from localStorage
+    // 1) Auto-save data
     const savedData = localStorage.getItem('resumeBuilderData');
     const [data, setData] = useState(savedData ? JSON.parse(savedData) : initialState);
 
-    // 1) Auto-save data: Save to localStorage on change
+    // 5) Persist Template Choice
+    const savedTemplate = localStorage.getItem('resumeTemplate');
+    const [template, setTemplate] = useState(savedTemplate || 'classic');
+
     useEffect(() => {
         localStorage.setItem('resumeBuilderData', JSON.stringify(data));
     }, [data]);
+
+    useEffect(() => {
+        localStorage.setItem('resumeTemplate', template);
+    }, [template]);
 
     const loadSampleData = () => {
         setData({
             personal: { name: 'Jahnavi Guturi', email: 'jahnavi@example.com', phone: '+91 98765 43210', location: 'Bangalore, India' },
             summary: 'Ambitious Software Engineer with a passion for building elegant, user-centric applications. Expert in React and modern CSS. Over the last 4 years, I have delivered over 15 high-impact web solutions for various clients across the globe.',
             education: [{ school: 'KodNest Institute', degree: 'Full Stack Development', year: '2025' }],
-            experience: [{ company: 'Tech Innovators', position: 'Frontend Intern', duration: '2024 - Present', desc: 'Working on premium UI components. Improved load times by 20%.' }],
+            experience: [{ company: 'Tech Innovators', position: 'Frontend Intern', duration: '2024 - Present', desc: 'Developed premium UI components. Improved load times by 20%.' }],
             projects: [
-                { title: 'AI Resume Builder', desc: 'A premium tool for building ATS-friendly resumes with 100% accuracy.' },
-                { title: 'Job Notification System', desc: 'Real-time job alerts delivered to over 500 users weekly.' }
+                { title: 'AI Resume Builder', desc: 'Designed a premium tool for building ATS-friendly resumes with 100% accuracy.' },
+                { title: 'Job Notification System', desc: 'Automated real-time job alerts delivered to over 500 users weekly.' }
             ],
             skills: 'React, Javascript, CSS, Node.js, Git, TypeScript, SQL, AWS',
             links: { github: 'github.com/jahnaviguturi', linkedin: 'linkedin.com/in/jahnaviguturi' }
@@ -58,31 +67,46 @@ const Builder = () => {
         setData({ ...data, [type]: newList });
     };
 
-    // 3) ATS Score v1 Logic
-    const { score, appliedSuggestions } = useMemo(() => {
+    // 2) Bullet Structure Guidance helper
+    const getBulletGuidance = (text) => {
+        if (!text) return null;
+        const suggestions = [];
+        const words = text.trim().split(/\s+/);
+        const firstWord = words[0]?.toLowerCase().replace(/[^a-z]/g, '');
+
+        if (!ACTION_VERBS.includes(firstWord)) {
+            suggestions.push("Start with a strong action verb.");
+        }
+        if (!/\d/.test(text)) {
+            suggestions.push("Add measurable impact (numbers).");
+        }
+        return suggestions;
+    };
+
+    // 3) Improvement Panel Logic (ATS Score v1 intact)
+    const { score, topImprovements } = useMemo(() => {
         let currentScore = 0;
-        let suggestions = [];
+        let improvements = [];
 
         // Summary length 40-120 words
         const summaryWords = data.summary.trim() ? data.summary.trim().split(/\s+/).length : 0;
         if (summaryWords >= 40 && summaryWords <= 120) {
             currentScore += 15;
         } else {
-            suggestions.push("Write a stronger summary (40–120 words).");
+            if (summaryWords < 40) improvements.push("Expand your summary to at least 40 words for better impact.");
+            if (summaryWords > 120) improvements.push("Shorten your summary to under 120 words.");
         }
 
-        // Projects >= 2
-        if (data.projects.length >= 2) {
-            currentScore += 10;
-        } else {
-            suggestions.push("Add at least 2 projects.");
+        if (data.projects.length < 2) {
+            improvements.push("Add at least 2 technical projects to showcase your skills.");
         }
+        if (data.projects.length >= 2) currentScore += 10;
 
         // Experience >= 1
         if (data.experience.length >= 1) {
             currentScore += 10;
         } else {
-            suggestions.push("Add at least 1 experience entry.");
+            improvements.push("Add internship or project work to your experience section.");
         }
 
         // Skills >= 8
@@ -90,45 +114,43 @@ const Builder = () => {
         if (skillsCount >= 8) {
             currentScore += 10;
         } else {
-            suggestions.push("Add more skills (target 8+).");
+            improvements.push("List at least 8 relevant technical and soft skills.");
         }
 
         // Links exist
         if (data.links.github.trim() || data.links.linkedin.trim()) {
             currentScore += 10;
-        } else {
-            suggestions.push("Link GitHub or LinkedIn profile.");
         }
 
         // Measureable impact (numbers)
         const hasNumbers = [...data.experience, ...data.projects].some(item =>
-            (item.desc && /[\d]+[%kX]/i.test(item.desc)) || (item.desc && /\d/.test(item.desc))
+            (item.desc && /\d/.test(item.desc))
         );
         if (hasNumbers) {
             currentScore += 15;
         } else {
-            suggestions.push("Add measurable impact (numbers) in bullets.");
+            improvements.push("Use numbers (%, X, k) to show the scale of your achievements.");
         }
 
         // Education complete
         const eduComplete = data.education.length > 0 && data.education.every(edu => edu.school && edu.degree && edu.year);
         if (eduComplete) {
             currentScore += 10;
-        } else {
-            suggestions.push("Complete all fields in education section.");
         }
 
-        // Final polish (Base score for having personal info)
         if (data.personal.name && data.personal.email) currentScore += 20;
 
-        return { score: Math.min(currentScore, 100), appliedSuggestions: suggestions.slice(0, 3) };
+        return {
+            score: Math.min(currentScore, 100),
+            topImprovements: improvements.slice(0, 3)
+        };
     }, [data]);
 
     return (
         <div className="builder-container">
             {/* Form Section */}
             <div className="builder-form">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Resume Details</h2>
                     <div style={{ display: 'flex', gap: '12px' }}>
                         <button className="btn btn-outline" onClick={() => setData(initialState)} style={{ color: 'var(--error)' }}>
@@ -138,6 +160,13 @@ const Builder = () => {
                             <Database size={16} /> Load Sample Data
                         </button>
                     </div>
+                </div>
+
+                {/* 1) Template Tabs UI */}
+                <div className="template-tabs">
+                    <button className={`template-tab ${template === 'classic' ? 'active' : ''}`} onClick={() => setTemplate('classic')}>Classic</button>
+                    <button className={`template-tab ${template === 'modern' ? 'active' : ''}`} onClick={() => setTemplate('modern')}>Modern</button>
+                    <button className={`template-tab ${template === 'minimal' ? 'active' : ''}`} onClick={() => setTemplate('minimal')}>Minimal</button>
                 </div>
 
                 {/* Personal Info */}
@@ -208,7 +237,13 @@ const Builder = () => {
                                 <div className="input-wrapper"><label className="label">Position</label><input className="input-field" value={item.position} onChange={(e) => updateItem('experience', i, 'position', e.target.value)} /></div>
                             </div>
                             <div className="input-wrapper" style={{ marginTop: '12px' }}><label className="label">Duration</label><input className="input-field" value={item.duration} onChange={(e) => updateItem('experience', i, 'duration', e.target.value)} /></div>
-                            <div className="input-wrapper" style={{ marginTop: '12px' }}><label className="label">Description</label><textarea className="textarea-field" style={{ minHeight: '60px' }} value={item.desc} onChange={(e) => updateItem('experience', i, 'desc', e.target.value)} /></div>
+                            <div className="input-wrapper" style={{ marginTop: '12px' }}>
+                                <label className="label">Description</label>
+                                <textarea className="textarea-field" style={{ minHeight: '60px' }} value={item.desc} onChange={(e) => updateItem('experience', i, 'desc', e.target.value)} />
+                                {getBulletGuidance(item.desc)?.map((s, idx) => (
+                                    <div key={idx} className="guidance-msg"><Sparkles size={12} /> {s}</div>
+                                ))}
+                            </div>
                         </div>
                     ))}
                 </section>
@@ -231,6 +266,9 @@ const Builder = () => {
                             <div className="input-wrapper" style={{ marginTop: '12px' }}>
                                 <label className="label">Description</label>
                                 <textarea className="textarea-field" style={{ minHeight: '60px' }} value={item.desc} onChange={(e) => updateItem('projects', i, 'desc', e.target.value)} />
+                                {getBulletGuidance(item.desc)?.map((s, idx) => (
+                                    <div key={idx} className="guidance-msg"><Sparkles size={12} /> {s}</div>
+                                ))}
                             </div>
                         </div>
                     ))}
@@ -263,7 +301,6 @@ const Builder = () => {
 
             {/* Preview Section */}
             <div className="builder-preview" style={{ flexDirection: 'column', gap: '20px' }}>
-                {/* 3) ATS Score Meter */}
                 <div className="build-card glass" style={{ width: '100%', maxWidth: '210mm', marginBottom: '0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
@@ -280,28 +317,31 @@ const Builder = () => {
                         </div>
                     </div>
 
-                    {/* 4) Suggestions */}
-                    {appliedSuggestions.length > 0 && (
-                        <div style={{ marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                            <p style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px' }}>Improvements Suggestions</p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {appliedSuggestions.map((s, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem', color: 'var(--text-main)', fontWeight: 500 }}>
-                                        <AlertCircle size={14} style={{ color: 'var(--primary)' }} /> {s}
+                    {/* 3) Top 3 Improvements Panel */}
+                    {topImprovements.length > 0 && (
+                        <div style={{ marginTop: '20px', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
+                            <p style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Wand2 size={14} style={{ color: 'var(--primary)' }} /> Top 3 Improvements
+                            </p>
+                            <div className="improvement-list">
+                                {topImprovements.map((imp, idx) => (
+                                    <div key={idx} className="improvement-item">
+                                        {imp}
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
-                    {appliedSuggestions.length === 0 && score === 100 && (
+
+                    {topImprovements.length === 0 && score === 100 && (
                         <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', fontWeight: 600 }}>
                             <CheckCircle2 size={16} /> Resume is ATS Optimized!
                         </div>
                     )}
                 </div>
 
-                {/* 2) Real Live Preview */}
-                <div className="resume-sheet resume-preview-scale" style={{ alignSelf: 'center' }}>
+                {/* Live Preview with Template class */}
+                <div className={`resume-sheet resume-preview-scale resume-${template}`} style={{ alignSelf: 'center' }}>
                     <header className="resume-header">
                         <h1 className="resume-name">{data.personal.name || 'Your Name'}</h1>
                         <div className="resume-contact">
