@@ -1,7 +1,44 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Plus, Trash2, Database, Zap, AlertCircle, CheckCircle2, Layout, Sparkles, Wand2 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Plus, Trash2, Database, Zap, AlertCircle, CheckCircle2, Layout, Sparkles, Wand2, X, ChevronDown, ChevronUp, Github, ExternalLink } from 'lucide-react';
 
 const ACTION_VERBS = ['built', 'developed', 'designed', 'implemented', 'led', 'improved', 'created', 'optimized', 'automated'];
+
+// Tag Input Component
+const TagInput = ({ tags, setTags, placeholder }) => {
+    const [input, setInput] = useState('');
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && input.trim()) {
+            e.preventDefault();
+            if (!tags.includes(input.trim())) {
+                setTags([...tags, input.trim()]);
+            }
+            setInput('');
+        }
+    };
+
+    const removeTag = (tagToRemove) => {
+        setTags(tags.filter(tag => tag !== tagToRemove));
+    };
+
+    return (
+        <div className="tags-container">
+            {tags.map((tag, idx) => (
+                <span key={idx} className="tag-pill">
+                    {tag}
+                    <X size={14} className="tag-remove" onClick={() => removeTag(tag)} />
+                </span>
+            ))}
+            <input
+                className="tag-input"
+                placeholder={placeholder}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+            />
+        </div>
+    );
+};
 
 const Builder = () => {
     const initialState = {
@@ -10,17 +47,19 @@ const Builder = () => {
         education: [],
         experience: [],
         projects: [],
-        skills: '',
+        skills: {
+            technical: [],
+            soft: [],
+            tools: []
+        },
         links: { github: '', linkedin: '' }
     };
 
-    // 1) Auto-save data
     const savedData = localStorage.getItem('resumeBuilderData');
     const [data, setData] = useState(savedData ? JSON.parse(savedData) : initialState);
-
-    // 5) Persist Template Choice
-    const savedTemplate = localStorage.getItem('resumeTemplate');
-    const [template, setTemplate] = useState(savedTemplate || 'classic');
+    const [template, setTemplate] = useState(localStorage.getItem('resumeTemplate') || 'classic');
+    const [isSuggesting, setIsSuggesting] = useState(false);
+    const [expandedProject, setExpandedProject] = useState(0);
 
     useEffect(() => {
         localStorage.setItem('resumeBuilderData', JSON.stringify(data));
@@ -37,28 +76,48 @@ const Builder = () => {
             education: [{ school: 'KodNest Institute', degree: 'Full Stack Development', year: '2025' }],
             experience: [{ company: 'Tech Innovators', position: 'Frontend Intern', duration: '2024 - Present', desc: 'Developed premium UI components. Improved load times by 20%.' }],
             projects: [
-                { title: 'AI Resume Builder', desc: 'Designed a premium tool for building ATS-friendly resumes with 100% accuracy.' },
-                { title: 'Job Notification System', desc: 'Automated real-time job alerts delivered to over 500 users weekly.' }
+                { title: 'AI Resume Builder', desc: 'Designed a premium tool for building ATS-friendly resumes with 100% accuracy.', techStack: ['React', 'Vite', 'Lucide-React'], liveUrl: 'https://resume-builder.ai', githubUrl: 'https://github.com/jahnaviguturi/AI-Resume-Builder' },
+                { title: 'Portfolio Site', desc: 'High-performance portfolio using Next.js and Tailwind CSS.', techStack: ['Next.js', 'Tailwind', 'Framer Motion'], liveUrl: 'https://jahnavi.dev', githubUrl: '' }
             ],
-            skills: 'React, Javascript, CSS, Node.js, Git, TypeScript, SQL, AWS',
+            skills: {
+                technical: ['React', 'JavaScript', 'TypeScript', 'Node.js'],
+                soft: ['Team Leadership', 'Problem Solving'],
+                tools: ['Git', 'VS Code', 'Figma']
+            },
             links: { github: 'github.com/jahnaviguturi', linkedin: 'linkedin.com/in/jahnaviguturi' }
         });
     };
 
-    const updatePersonal = (field, val) => {
-        setData({ ...data, personal: { ...data.personal, [field]: val } });
+    const suggestSkills = () => {
+        setIsSuggesting(true);
+        setTimeout(() => {
+            setData(prev => ({
+                ...prev,
+                skills: {
+                    technical: [...new Set([...prev.skills.technical, "TypeScript", "React", "Node.js", "PostgreSQL", "GraphQL"])],
+                    soft: [...new Set([...prev.skills.soft, "Team Leadership", "Problem Solving"])],
+                    tools: [...new Set([...prev.skills.tools, "Git", "Docker", "AWS"])]
+                }
+            }));
+            setIsSuggesting(false);
+        }, 1000);
     };
 
+    const updatePersonal = (field, val) => setData({ ...data, personal: { ...data.personal, [field]: val } });
+
     const addItem = (type) => {
-        const newItem = type === 'education' ? { school: '', degree: '', year: '' } :
-            type === 'experience' ? { company: '', position: '', duration: '', desc: '' } :
-                { title: '', desc: '' };
+        let newItem;
+        if (type === 'education') newItem = { school: '', degree: '', year: '' };
+        else if (type === 'experience') newItem = { company: '', position: '', duration: '', desc: '' };
+        else if (type === 'projects') newItem = { title: '', desc: '', techStack: [], liveUrl: '', githubUrl: '' };
+
         setData({ ...data, [type]: [...data[type], newItem] });
+        if (type === 'projects') setExpandedProject(data.projects.length);
     };
 
     const updateItem = (type, index, field, val) => {
         const newList = [...data[type]];
-        newList[index][field] = val;
+        newList[index] = { ...newList[index], [field]: val };
         setData({ ...data, [type]: newList });
     };
 
@@ -67,171 +126,155 @@ const Builder = () => {
         setData({ ...data, [type]: newList });
     };
 
-    // 2) Bullet Structure Guidance helper
     const getBulletGuidance = (text) => {
         if (!text) return null;
         const suggestions = [];
         const words = text.trim().split(/\s+/);
         const firstWord = words[0]?.toLowerCase().replace(/[^a-z]/g, '');
-
-        if (!ACTION_VERBS.includes(firstWord)) {
-            suggestions.push("Start with a strong action verb.");
-        }
-        if (!/\d/.test(text)) {
-            suggestions.push("Add measurable impact (numbers).");
-        }
+        if (!ACTION_VERBS.includes(firstWord)) suggestions.push("Start with a strong action verb.");
+        if (!/\d/.test(text)) suggestions.push("Add measurable impact (numbers).");
         return suggestions;
     };
 
-    // 3) Improvement Panel Logic (ATS Score v1 intact)
     const { score, topImprovements } = useMemo(() => {
         let currentScore = 0;
         let improvements = [];
 
-        // Summary length 40-120 words
         const summaryWords = data.summary.trim() ? data.summary.trim().split(/\s+/).length : 0;
-        if (summaryWords >= 40 && summaryWords <= 120) {
-            currentScore += 15;
-        } else {
-            if (summaryWords < 40) improvements.push("Expand your summary to at least 40 words for better impact.");
+        if (summaryWords >= 40 && summaryWords <= 120) currentScore += 15;
+        else {
+            if (summaryWords < 40) improvements.push("Expand your summary to at least 40 words.");
             if (summaryWords > 120) improvements.push("Shorten your summary to under 120 words.");
         }
 
-        if (data.projects.length < 2) {
-            improvements.push("Add at least 2 technical projects to showcase your skills.");
-        }
         if (data.projects.length >= 2) currentScore += 10;
+        else improvements.push("Add at least 2 technical projects.");
 
-        // Experience >= 1
-        if (data.experience.length >= 1) {
-            currentScore += 10;
-        } else {
-            improvements.push("Add internship or project work to your experience section.");
-        }
+        if (data.experience.length >= 1) currentScore += 10;
+        else improvements.push("Add internship or project work to experience.");
 
-        // Skills >= 8
-        const skillsCount = data.skills.split(',').filter(s => s.trim().length > 0).length;
-        if (skillsCount >= 8) {
-            currentScore += 10;
-        } else {
-            improvements.push("List at least 8 relevant technical and soft skills.");
-        }
+        const skillsCount = (data.skills?.technical?.length || 0) + (data.skills?.soft?.length || 0) + (data.skills?.tools?.length || 0);
+        if (skillsCount >= 8) currentScore += 10;
+        else improvements.push("List at least 8 relevant skills.");
 
-        // Links exist
-        if (data.links.github.trim() || data.links.linkedin.trim()) {
-            currentScore += 10;
-        }
+        if (data.links.github.trim() || data.links.linkedin.trim()) currentScore += 10;
 
-        // Measureable impact (numbers)
-        const hasNumbers = [...data.experience, ...data.projects].some(item =>
-            (item.desc && /\d/.test(item.desc))
-        );
-        if (hasNumbers) {
-            currentScore += 15;
-        } else {
-            improvements.push("Use numbers (%, X, k) to show the scale of your achievements.");
-        }
+        const hasNumbers = [...data.experience, ...data.projects].some(item => (item.desc && /\d/.test(item.desc)));
+        if (hasNumbers) currentScore += 15;
+        else improvements.push("Use numbers (%, X, k) to show scale of achievements.");
 
-        // Education complete
         const eduComplete = data.education.length > 0 && data.education.every(edu => edu.school && edu.degree && edu.year);
-        if (eduComplete) {
-            currentScore += 10;
-        }
+        if (eduComplete) currentScore += 10;
 
         if (data.personal.name && data.personal.email) currentScore += 20;
 
-        return {
-            score: Math.min(currentScore, 100),
-            topImprovements: improvements.slice(0, 3)
-        };
+        return { score: Math.min(currentScore, 100), topImprovements: improvements.slice(0, 3) };
     }, [data]);
 
     return (
         <div className="builder-container">
-            {/* Form Section */}
             <div className="builder-form">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Resume Details</h2>
                     <div style={{ display: 'flex', gap: '12px' }}>
-                        <button className="btn btn-outline" onClick={() => setData(initialState)} style={{ color: 'var(--error)' }}>
-                            <Trash2 size={16} /> Clear All
-                        </button>
-                        <button className="btn btn-outline" onClick={loadSampleData}>
-                            <Database size={16} /> Load Sample Data
-                        </button>
+                        <button className="btn btn-outline" onClick={() => setData(initialState)} style={{ color: 'var(--error)' }}><Trash2 size={16} /> Clear</button>
+                        <button className="btn btn-outline" onClick={loadSampleData}><Database size={16} /> Load Sample</button>
                     </div>
                 </div>
 
-                {/* 1) Template Tabs UI */}
                 <div className="template-tabs">
-                    <button className={`template-tab ${template === 'classic' ? 'active' : ''}`} onClick={() => setTemplate('classic')}>Classic</button>
-                    <button className={`template-tab ${template === 'modern' ? 'active' : ''}`} onClick={() => setTemplate('modern')}>Modern</button>
-                    <button className={`template-tab ${template === 'minimal' ? 'active' : ''}`} onClick={() => setTemplate('minimal')}>Minimal</button>
+                    {['classic', 'modern', 'minimal'].map(t => (
+                        <button key={t} className={`template-tab ${template === t ? 'active' : ''}`} onClick={() => setTemplate(t)}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
+                    ))}
                 </div>
 
-                {/* Personal Info */}
                 <section className="form-section">
-                    <h3 className="form-section-title"><User size={20} /> Personal Information</h3>
+                    <h3 className="form-section-title"><User size={20} /> Personal Info</h3>
                     <div className="input-group">
-                        <div className="input-wrapper">
-                            <label className="label">Full Name</label>
-                            <input className="input-field" placeholder="John Doe" value={data.personal.name} onChange={(e) => updatePersonal('name', e.target.value)} />
-                        </div>
-                        <div className="input-wrapper">
-                            <label className="label">Email Address</label>
-                            <input className="input-field" placeholder="john@example.com" value={data.personal.email} onChange={(e) => updatePersonal('email', e.target.value)} />
-                        </div>
-                        <div className="input-wrapper">
-                            <label className="label">Phone Number</label>
-                            <input className="input-field" placeholder="+1 234 567 890" value={data.personal.phone} onChange={(e) => updatePersonal('phone', e.target.value)} />
-                        </div>
-                        <div className="input-wrapper">
-                            <label className="label">Location</label>
-                            <input className="input-field" placeholder="New York, USA" value={data.personal.location} onChange={(e) => updatePersonal('location', e.target.value)} />
-                        </div>
+                        <div className="input-wrapper"><label className="label">Name</label><input className="input-field" value={data.personal.name} onChange={(e) => updatePersonal('name', e.target.value)} /></div>
+                        <div className="input-wrapper"><label className="label">Email</label><input className="input-field" value={data.personal.email} onChange={(e) => updatePersonal('email', e.target.value)} /></div>
+                        <div className="input-wrapper"><label className="label">Phone</label><input className="input-field" value={data.personal.phone} onChange={(e) => updatePersonal('phone', e.target.value)} /></div>
+                        <div className="input-wrapper"><label className="label">Location</label><input className="input-field" value={data.personal.location} onChange={(e) => updatePersonal('location', e.target.value)} /></div>
                     </div>
                 </section>
 
-                {/* Summary */}
                 <section className="form-section">
-                    <h3 className="form-section-title"><Database size={20} /> Professional Summary</h3>
-                    <textarea className="textarea-field" placeholder="Briefly describe your career goals and expertise..." value={data.summary} onChange={(e) => setData({ ...data, summary: e.target.value })} />
-                    <p style={{ fontSize: '0.75rem', marginTop: '4px', color: 'var(--text-muted)' }}>
-                        Word count: {data.summary.trim() ? data.summary.trim().split(/\s+/).length : 0} (Target: 40-120)
-                    </p>
+                    <h3 className="form-section-title"><Database size={20} /> Summary</h3>
+                    <textarea className="textarea-field" value={data.summary} onChange={(e) => setData({ ...data, summary: e.target.value })} />
                 </section>
 
-                {/* Education */}
                 <section className="form-section">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 className="form-section-title" style={{ marginBottom: 0 }}><GraduationCap size={20} /> Education</h3>
-                        <button className="btn btn-outline" style={{ padding: '6px 12px' }} onClick={() => addItem('education')}>
-                            <Plus size={16} /> Add
+                        <h3 className="form-section-title" style={{ marginBottom: 0 }}><Code size={20} /> Skills</h3>
+                        <button className={`btn btn-primary ${isSuggesting ? 'loading-shimmer' : ''}`} disabled={isSuggesting} onClick={suggestSkills}>
+                            <Sparkles size={16} /> {isSuggesting ? 'Suggesting...' : 'Suggest Skills'}
                         </button>
                     </div>
-                    {data.education.map((item, i) => (
-                        <div key={i} className="repeater-item">
-                            <button onClick={() => removeItem('education', i)} style={{ position: 'absolute', top: '12px', right: '12px', color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
-                            <div className="input-group">
-                                <div className="input-wrapper"><label className="label">School</label><input className="input-field" value={item.school} onChange={(e) => updateItem('education', i, 'school', e.target.value)} /></div>
-                                <div className="input-wrapper"><label className="label">Degree</label><input className="input-field" value={item.degree} onChange={(e) => updateItem('education', i, 'degree', e.target.value)} /></div>
-                            </div>
-                            <div className="input-wrapper" style={{ marginTop: '12px' }}><label className="label">Year</label><input className="input-field" value={item.year} onChange={(e) => updateItem('education', i, 'year', e.target.value)} /></div>
+                    {(['technical', 'soft', 'tools']).map((cat) => (
+                        <div key={cat} style={{ marginBottom: '16px' }}>
+                            <label className="label" style={{ marginBottom: '8px', display: 'block' }}>
+                                {cat === 'technical' ? 'Technical Skills' : cat === 'soft' ? 'Soft Skills' : 'Tools & Technologies'}
+                                ({data.skills[cat]?.length || 0})
+                            </label>
+                            <TagInput
+                                tags={data.skills[cat] || []}
+                                setTags={(newTags) => setData({ ...data, skills: { ...data.skills, [cat]: newTags } })}
+                                placeholder={`Type and press Enter to add to ${cat}...`}
+                            />
                         </div>
                     ))}
                 </section>
 
-                {/* Experience */}
+                <section className="form-section">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 className="form-section-title" style={{ marginBottom: 0 }}><Zap size={20} /> Projects</h3>
+                        <button className="btn btn-outline" onClick={() => addItem('projects')}><Plus size={16} /> Add Project</button>
+                    </div>
+                    {data.projects.map((item, i) => (
+                        <div key={i} className="accordion-item">
+                            <div className="accordion-header" onClick={() => setExpandedProject(expandedProject === i ? -1 : i)}>
+                                <span className="accordion-title">{item.title || 'Untitled Project'}</span>
+                                {expandedProject === i ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                            </div>
+                            {expandedProject === i && (
+                                <div className="accordion-content">
+                                    <div className="input-wrapper" style={{ marginBottom: '12px' }}>
+                                        <label className="label">Project Title</label>
+                                        <input className="input-field" value={item.title} onChange={(e) => updateItem('projects', i, 'title', e.target.value)} />
+                                    </div>
+                                    <div className="input-wrapper" style={{ marginBottom: '12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <label className="label">Description</label>
+                                            <span style={{ fontSize: '0.65rem' }}>{item.desc?.length || 0}/200</span>
+                                        </div>
+                                        <textarea className="textarea-field" style={{ minHeight: '60px' }} maxLength={200} value={item.desc} onChange={(e) => updateItem('projects', i, 'desc', e.target.value)} />
+                                        {getBulletGuidance(item.desc)?.map((s, idx) => (
+                                            <div key={idx} className="guidance-msg"><Sparkles size={12} /> {s}</div>
+                                        ))}
+                                    </div>
+                                    <div className="input-wrapper" style={{ marginBottom: '12px' }}>
+                                        <label className="label">Tech Stack</label>
+                                        <TagInput tags={item.techStack || []} setTags={(tags) => updateItem('projects', i, 'techStack', tags)} placeholder="React, Vite..." />
+                                    </div>
+                                    <div className="input-group">
+                                        <div className="input-wrapper"><label className="label">Live URL</label><input className="input-field" value={item.liveUrl} onChange={(e) => updateItem('projects', i, 'liveUrl', e.target.value)} /></div>
+                                        <div className="input-wrapper"><label className="label">GitHub URL</label><input className="input-field" value={item.githubUrl} onChange={(e) => updateItem('projects', i, 'githubUrl', e.target.value)} /></div>
+                                    </div>
+                                    <button className="btn" onClick={() => removeItem('projects', i)} style={{ marginTop: '12px', color: 'var(--error)', width: '100%' }}><Trash2 size={16} /> Delete Project</button>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </section>
+
                 <section className="form-section">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h3 className="form-section-title" style={{ marginBottom: 0 }}><Briefcase size={20} /> Experience</h3>
-                        <button className="btn btn-outline" style={{ padding: '6px 12px' }} onClick={() => addItem('experience')}>
-                            <Plus size={16} /> Add
-                        </button>
+                        <button className="btn btn-outline" onClick={() => addItem('experience')}><Plus size={16} /> Add</button>
                     </div>
                     {data.experience.map((item, i) => (
                         <div key={i} className="repeater-item">
-                            <button onClick={() => removeItem('experience', i)} style={{ position: 'absolute', top: '12px', right: '12px', color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                            <button onClick={() => removeItem('experience', i)} style={{ position: 'absolute', top: '12px', right: '12px', color: 'var(--error)', border: 'none', background: 'none' }}><Trash2 size={16} /></button>
                             <div className="input-group">
                                 <div className="input-wrapper"><label className="label">Company</label><input className="input-field" value={item.company} onChange={(e) => updateItem('experience', i, 'company', e.target.value)} /></div>
                                 <div className="input-wrapper"><label className="label">Position</label><input className="input-field" value={item.position} onChange={(e) => updateItem('experience', i, 'position', e.target.value)} /></div>
@@ -248,133 +291,47 @@ const Builder = () => {
                     ))}
                 </section>
 
-                {/* Projects */}
-                <section className="form-section">
+                <section className="form-section" style={{ marginBottom: '100px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 className="form-section-title" style={{ marginBottom: 0 }}><Zap size={20} /> Projects</h3>
-                        <button className="btn btn-outline" style={{ padding: '6px 12px' }} onClick={() => addItem('projects')}>
-                            <Plus size={16} /> Add
-                        </button>
+                        <h3 className="form-section-title" style={{ marginBottom: 0 }}><GraduationCap size={20} /> Education</h3>
+                        <button className="btn btn-outline" onClick={() => addItem('education')}><Plus size={16} /> Add</button>
                     </div>
-                    {data.projects.map((item, i) => (
+                    {data.education.map((item, i) => (
                         <div key={i} className="repeater-item">
-                            <button onClick={() => removeItem('projects', i)} style={{ position: 'absolute', top: '12px', right: '12px', color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
-                            <div className="input-wrapper">
-                                <label className="label">Project Title</label>
-                                <input className="input-field" value={item.title} onChange={(e) => updateItem('projects', i, 'title', e.target.value)} />
-                            </div>
-                            <div className="input-wrapper" style={{ marginTop: '12px' }}>
-                                <label className="label">Description</label>
-                                <textarea className="textarea-field" style={{ minHeight: '60px' }} value={item.desc} onChange={(e) => updateItem('projects', i, 'desc', e.target.value)} />
-                                {getBulletGuidance(item.desc)?.map((s, idx) => (
-                                    <div key={idx} className="guidance-msg"><Sparkles size={12} /> {s}</div>
-                                ))}
-                            </div>
+                            <button onClick={() => removeItem('education', i)} style={{ position: 'absolute', top: '12px', right: '12px', color: 'var(--error)', border: 'none', background: 'none' }}><Trash2 size={16} /></button>
+                            <input className="input-box" placeholder="School" value={item.school} onChange={(e) => updateItem('education', i, 'school', e.target.value)} />
+                            <input className="input-box" placeholder="Degree" value={item.degree} onChange={(e) => updateItem('education', i, 'degree', e.target.value)} />
                         </div>
                     ))}
                 </section>
-
-                {/* Skills */}
-                <section className="form-section">
-                    <h3 className="form-section-title"><Code size={20} /> Skills</h3>
-                    <div className="input-wrapper">
-                        <label className="label">Comma Separated Skills</label>
-                        <input className="input-field" placeholder="React, Python, AWS..." value={data.skills} onChange={(e) => setData({ ...data, skills: e.target.value })} />
-                    </div>
-                </section>
-
-                {/* Links */}
-                <section className="form-section" style={{ marginBottom: '80px' }}>
-                    <h3 className="form-section-title"><Globe size={20} /> Links</h3>
-                    <div className="input-group">
-                        <div className="input-wrapper">
-                            <label className="label">GitHub</label>
-                            <input className="input-field" placeholder="github.com/profile" value={data.links.github} onChange={(e) => setData({ ...data, links: { ...data.links, github: e.target.value } })} />
-                        </div>
-                        <div className="input-wrapper">
-                            <label className="label">LinkedIn</label>
-                            <input className="input-field" placeholder="linkedin.com/in/profile" value={data.links.linkedin} onChange={(e) => setData({ ...data, links: { ...data.links, linkedin: e.target.value } })} />
-                        </div>
-                    </div>
-                </section>
             </div>
 
-            {/* Preview Section */}
-            <div className="builder-preview" style={{ flexDirection: 'column', gap: '20px' }}>
-                <div className="build-card glass" style={{ width: '100%', maxWidth: '210mm', marginBottom: '0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                            <p className="build-card-title">ATS Readiness Score</p>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                                <span style={{ fontSize: '2.5rem', fontWeight: 800, color: score > 80 ? 'var(--accent)' : score > 50 ? 'var(--primary)' : 'var(--error)' }}>
-                                    {score}
-                                </span>
-                                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>/ 100</span>
-                            </div>
-                        </div>
-                        <div style={{ width: '120px', height: '12px', background: 'var(--border)', borderRadius: '6px', overflow: 'hidden' }}>
-                            <div style={{ width: `${score}%`, height: '100%', background: score > 80 ? 'var(--accent)' : score > 50 ? 'var(--primary)' : 'var(--error)', transition: 'width 0.5s ease-out' }}></div>
-                        </div>
-                    </div>
-
-                    {/* 3) Top 3 Improvements Panel */}
-                    {topImprovements.length > 0 && (
-                        <div style={{ marginTop: '20px', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
-                            <p style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Wand2 size={14} style={{ color: 'var(--primary)' }} /> Top 3 Improvements
-                            </p>
-                            <div className="improvement-list">
-                                {topImprovements.map((imp, idx) => (
-                                    <div key={idx} className="improvement-item">
-                                        {imp}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {topImprovements.length === 0 && score === 100 && (
-                        <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', fontWeight: 600 }}>
-                            <CheckCircle2 size={16} /> Resume is ATS Optimized!
-                        </div>
-                    )}
-                </div>
-
-                {/* Live Preview with Template class */}
-                <div className={`resume-sheet resume-preview-scale resume-${template}`} style={{ alignSelf: 'center' }}>
+            <div className="builder-preview">
+                <div className={`resume-sheet resume-preview-scale resume-${template}`}>
                     <header className="resume-header">
                         <h1 className="resume-name">{data.personal.name || 'Your Name'}</h1>
                         <div className="resume-contact">
                             {data.personal.email && <span>{data.personal.email}</span>}
                             {data.personal.phone && <span>{data.personal.phone}</span>}
-                            {data.personal.location && <span>{data.personal.location}</span>}
                         </div>
-                        {(data.links.github || data.links.linkedin) && (
-                            <div className="resume-contact" style={{ marginTop: '4px' }}>
-                                {data.links.github && <span>GitHub: {data.links.github}</span>}
-                                {data.links.linkedin && <span>LinkedIn: {data.links.linkedin}</span>}
-                            </div>
-                        )}
                     </header>
 
                     {data.summary && (
                         <div className="resume-section">
                             <h2 className="resume-section-title">Summary</h2>
-                            <p style={{ fontSize: '0.9rem', lineHeight: 1.6 }}>{data.summary}</p>
+                            <p className="resume-text">{data.summary}</p>
                         </div>
                     )}
 
-                    {data.experience.length > 0 && (
+                    {data.skills && Object.values(data.skills).some(cat => cat?.length > 0) && (
                         <div className="resume-section">
-                            <h2 className="resume-section-title">Experience</h2>
-                            {data.experience.map((exp, i) => (
-                                <div key={i} className="resume-item">
-                                    <div className="resume-item-header">
-                                        <span className="resume-item-title">{exp.company || 'Company'}</span>
-                                        <span className="resume-item-date">{exp.duration}</span>
+                            <h2 className="resume-section-title">Skills</h2>
+                            {Object.entries(data.skills).map(([cat, tags]) => tags?.length > 0 && (
+                                <div key={cat}>
+                                    <div className="skill-group-title">{cat === 'technical' ? 'Technical' : cat === 'soft' ? 'Soft Skills' : 'Tools'}</div>
+                                    <div className="skill-pills">
+                                        {tags.map((tag, idx) => <span key={idx} className="skill-pill">{tag}</span>)}
                                     </div>
-                                    <div className="resume-item-subtitle">{exp.position || 'Position'}</div>
-                                    <p style={{ fontSize: '0.85rem', marginTop: '4px', whiteSpace: 'pre-wrap' }}>{exp.desc}</p>
                                 </div>
                             ))}
                         </div>
@@ -384,37 +341,47 @@ const Builder = () => {
                         <div className="resume-section">
                             <h2 className="resume-section-title">Projects</h2>
                             {data.projects.map((proj, i) => (
-                                <div key={i} className="resume-item">
-                                    <div className="resume-item-header">
+                                <div key={i} className="project-preview-card">
+                                    <div className="project-preview-header">
                                         <span className="resume-item-title">{proj.title || 'Project Title'}</span>
+                                        <div className="project-links">
+                                            {proj.githubUrl && <a href={proj.githubUrl} target="_blank" rel="noreferrer" className="project-link-icon"><Github size={14} /></a>}
+                                            {proj.liveUrl && <a href={proj.liveUrl} target="_blank" rel="noreferrer" className="project-link-icon"><ExternalLink size={14} /></a>}
+                                        </div>
                                     </div>
-                                    <p style={{ fontSize: '0.85rem', marginTop: '2px' }}>{proj.desc}</p>
+                                    <p className="resume-text" style={{ fontSize: '0.8rem' }}>{proj.desc}</p>
+                                    <div className="tech-pills">
+                                        {proj.techStack?.map((tech, idx) => <span key={idx} className="tech-pill">{tech}</span>)}
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     )}
 
-                    {data.education.length > 0 && (
+                    {/* Minimalist preview for others */}
+                    {data.experience.length > 0 && (
                         <div className="resume-section">
-                            <h2 className="resume-section-title">Education</h2>
-                            {data.education.map((edu, i) => (
+                            <h2 className="resume-section-title">Experience</h2>
+                            {data.experience.map((exp, i) => (
                                 <div key={i} className="resume-item">
                                     <div className="resume-item-header">
-                                        <span className="resume-item-title">{edu.school || 'University'}</span>
-                                        <span className="resume-item-date">{edu.year}</span>
+                                        <span className="resume-item-title">{exp.company}</span>
+                                        <span className="resume-item-date">{exp.duration}</span>
                                     </div>
-                                    <div className="resume-item-subtitle">{edu.degree}</div>
+                                    <p className="resume-text">{exp.desc}</p>
                                 </div>
                             ))}
                         </div>
                     )}
+                </div>
 
-                    {data.skills && (
-                        <div className="resume-section">
-                            <h2 className="resume-section-title">Skills</h2>
-                            <p style={{ fontSize: '0.9rem' }}>{data.skills}</p>
-                        </div>
-                    )}
+                {/* Score panel floating/sticky */}
+                <div className="build-card glass" style={{ position: 'fixed', top: '100px', right: '40px', width: '300px' }}>
+                    <p className="build-card-title">ATS Score</p>
+                    <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary)' }}>{score}</div>
+                    <div className="improvement-list">
+                        {topImprovements.map((imp, idx) => <div key={idx} className="improvement-item">{imp}</div>)}
+                    </div>
                 </div>
             </div>
         </div>

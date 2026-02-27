@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Check, Download, Printer, AlertTriangle, FileText } from 'lucide-react';
+import { Layout, Check, Download, Printer, AlertTriangle, FileText, Github, ExternalLink } from 'lucide-react';
 
 const Preview = () => {
     // Load from localStorage
@@ -50,7 +50,11 @@ const Preview = () => {
         if (data.projects.length > 0) {
             text += `\nPROJECTS\n`;
             data.projects.forEach(proj => {
-                text += `${proj.title}\n${proj.desc}\n\n`;
+                text += `${proj.title}\n${proj.desc}\n`;
+                if (proj.techStack?.length > 0) text += `Tech Stack: ${proj.techStack.join(', ')}\n`;
+                if (proj.liveUrl) text += `Live: ${proj.liveUrl}\n`;
+                if (proj.githubUrl) text += `GitHub: ${proj.githubUrl}\n`;
+                text += `\n`;
             });
         }
 
@@ -62,7 +66,12 @@ const Preview = () => {
         }
 
         if (data.skills) {
-            text += `\nSKILLS\n${data.skills}\n`;
+            text += `\nSKILLS\n`;
+            Object.entries(data.skills).forEach(([cat, tags]) => {
+                if (tags?.length > 0) {
+                    text += `${cat.toUpperCase()}: ${tags.join(', ')}\n`;
+                }
+            });
         }
 
         navigator.clipboard.writeText(text);
@@ -146,11 +155,18 @@ const Preview = () => {
                     <div className="resume-section">
                         <h2 className="resume-section-title">Projects</h2>
                         {data.projects.map((proj, i) => (
-                            <div key={i} className="resume-item avoid-break">
-                                <div className="resume-item-header">
+                            <div key={i} className="project-preview-card avoid-break">
+                                <div className="project-preview-header">
                                     <span className="resume-item-title">{proj.title || 'Project Title'}</span>
+                                    <div className="project-links no-print">
+                                        {proj.githubUrl && <a href={proj.githubUrl} target="_blank" rel="noreferrer" className="project-link-icon"><Github size={14} /></a>}
+                                        {proj.liveUrl && <a href={proj.liveUrl} target="_blank" rel="noreferrer" className="project-link-icon"><ExternalLink size={14} /></a>}
+                                    </div>
                                 </div>
-                                <p className="resume-text">{proj.desc}</p>
+                                <p className="resume-text" style={{ fontSize: '0.8rem' }}>{proj.desc}</p>
+                                <div className="tech-pills">
+                                    {proj.techStack?.map((tech, idx) => <span key={idx} className="tech-pill">{tech}</span>)}
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -171,10 +187,17 @@ const Preview = () => {
                     </div>
                 )}
 
-                {data.skills && (
+                {data.skills && Object.values(data.skills).some(cat => cat?.length > 0) && (
                     <div className="resume-section">
                         <h2 className="resume-section-title">Skills</h2>
-                        <p className="resume-text">{data.skills}</p>
+                        {Object.entries(data.skills).map(([cat, tags]) => tags?.length > 0 && (
+                            <div key={cat} className="avoid-break">
+                                <div className="skill-group-title">{cat === 'technical' ? 'Technical' : cat === 'soft' ? 'Soft Skills' : 'Tools'}</div>
+                                <div className="skill-pills">
+                                    {tags.map((tag, idx) => <span key={idx} className="skill-pill">{tag}</span>)}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
@@ -204,6 +227,9 @@ const Preview = () => {
                     }
                     .avoid-break {
                         page-break-inside: avoid;
+                    }
+                    .project-links {
+                        display: none !important;
                     }
                 }
                 `}
