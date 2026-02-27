@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Plus, Trash2, Database, Zap, AlertCircle, CheckCircle2, Layout, Sparkles, Wand2, X, ChevronDown, ChevronUp, Github, ExternalLink } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Plus, Trash2, Database, Zap, AlertCircle, CheckCircle2, Layout, Sparkles, Wand2, X, ChevronDown, ChevronUp, Github, ExternalLink, Download } from 'lucide-react';
 
 const ACTION_VERBS = ['built', 'developed', 'designed', 'implemented', 'led', 'improved', 'created', 'optimized', 'automated'];
 
@@ -58,8 +58,10 @@ const Builder = () => {
     const savedData = localStorage.getItem('resumeBuilderData');
     const [data, setData] = useState(savedData ? JSON.parse(savedData) : initialState);
     const [template, setTemplate] = useState(localStorage.getItem('resumeTemplate') || 'classic');
+    const [color, setColor] = useState(localStorage.getItem('resumeColor') || 'hsl(168, 60%, 40%)');
     const [isSuggesting, setIsSuggesting] = useState(false);
     const [expandedProject, setExpandedProject] = useState(0);
+    const [toast, setToast] = useState('');
 
     useEffect(() => {
         localStorage.setItem('resumeBuilderData', JSON.stringify(data));
@@ -68,6 +70,23 @@ const Builder = () => {
     useEffect(() => {
         localStorage.setItem('resumeTemplate', template);
     }, [template]);
+
+    useEffect(() => {
+        localStorage.setItem('resumeColor', color);
+    }, [color]);
+
+    const COLORS = [
+        { name: 'Teal', value: 'hsl(168, 60%, 40%)' },
+        { name: 'Navy', value: 'hsl(220, 60%, 35%)' },
+        { name: 'Burgundy', value: 'hsl(345, 60%, 35%)' },
+        { name: 'Forest', value: 'hsl(150, 50%, 30%)' },
+        { name: 'Charcoal', value: 'hsl(0, 0%, 25%)' }
+    ];
+
+    const showToast = (msg) => {
+        setToast(msg);
+        setTimeout(() => setToast(''), 3000);
+    };
 
     const loadSampleData = () => {
         setData({
@@ -171,6 +190,90 @@ const Builder = () => {
         return { score: Math.min(currentScore, 100), topImprovements: improvements.slice(0, 3) };
     }, [data]);
 
+    // Resume Sub-sections Rendering
+    const renderContact = (isModern) => (
+        <div className="resume-contact">
+            {data.personal.email && <span>{data.personal.email}</span>}
+            {data.personal.phone && <span>{data.personal.phone}</span>}
+            {data.personal.location && <span>{data.personal.location}</span>}
+        </div>
+    );
+
+    const renderSkills = (isModern) => (
+        data.skills && Object.values(data.skills).some(cat => cat?.length > 0) && (
+            <div className="resume-section">
+                <h2 className="resume-section-title">Skills</h2>
+                {Object.entries(data.skills).map(([cat, tags]) => tags?.length > 0 && (
+                    <div key={cat}>
+                        {!isModern && <div className="skill-group-title">{cat === 'technical' ? 'Technical' : cat === 'soft' ? 'Soft Skills' : 'Tools'}</div>}
+                        <div className="skill-pills">
+                            {tags.map((tag, idx) => <span key={idx} className="skill-pill">{tag}</span>)}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )
+    );
+
+    const renderContent = () => (
+        <>
+            {data.summary && (
+                <div className="resume-section">
+                    <h2 className="resume-section-title">Summary</h2>
+                    <p className="resume-text">{data.summary}</p>
+                </div>
+            )}
+            {data.experience.length > 0 && (
+                <div className="resume-section">
+                    <h2 className="resume-section-title">Experience</h2>
+                    {data.experience.map((exp, i) => (
+                        <div key={i} className="resume-item">
+                            <div className="resume-item-header">
+                                <span className="resume-item-title">{exp.company}</span>
+                                <span className="resume-item-date">{exp.duration}</span>
+                            </div>
+                            <p className="resume-text">{exp.desc}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+            {data.projects.length > 0 && (
+                <div className="resume-section">
+                    <h2 className="resume-section-title">Projects</h2>
+                    {data.projects.map((proj, i) => (
+                        <div key={i} className="project-preview-card">
+                            <div className="project-preview-header">
+                                <span className="resume-item-title">{proj.title || 'Project Title'}</span>
+                                <div className="project-links">
+                                    {proj.githubUrl && <a href={proj.githubUrl} target="_blank" rel="noreferrer" className="project-link-icon"><Github size={14} /></a>}
+                                    {proj.liveUrl && <a href={proj.liveUrl} target="_blank" rel="noreferrer" className="project-link-icon"><ExternalLink size={14} /></a>}
+                                </div>
+                            </div>
+                            <p className="resume-text" style={{ fontSize: '0.8rem' }}>{proj.desc}</p>
+                            <div className="tech-pills">
+                                {proj.techStack?.map((tech, idx) => <span key={idx} className="tech-pill">{tech}</span>)}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+            {data.education.length > 0 && (
+                <div className="resume-section">
+                    <h2 className="resume-section-title">Education</h2>
+                    {data.education.map((edu, i) => (
+                        <div key={i} className="resume-item">
+                            <div className="resume-item-header">
+                                <span className="resume-item-title">{edu.school}</span>
+                                <span className="resume-item-date">{edu.year}</span>
+                            </div>
+                            <div className="resume-item-subtitle">{edu.degree}</div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </>
+    );
+
     return (
         <div className="builder-container">
             <div className="builder-form">
@@ -180,12 +283,6 @@ const Builder = () => {
                         <button className="btn btn-outline" onClick={() => setData(initialState)} style={{ color: 'var(--error)' }}><Trash2 size={16} /> Clear</button>
                         <button className="btn btn-outline" onClick={loadSampleData}><Database size={16} /> Load Sample</button>
                     </div>
-                </div>
-
-                <div className="template-tabs">
-                    {['classic', 'modern', 'minimal'].map(t => (
-                        <button key={t} className={`template-tab ${template === t ? 'active' : ''}`} onClick={() => setTemplate(t)}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
-                    ))}
                 </div>
 
                 <section className="form-section">
@@ -307,72 +404,65 @@ const Builder = () => {
             </div>
 
             <div className="builder-preview">
-                <div className={`resume-sheet resume-preview-scale resume-${template}`}>
-                    <header className="resume-header">
-                        <h1 className="resume-name">{data.personal.name || 'Your Name'}</h1>
-                        <div className="resume-contact">
-                            {data.personal.email && <span>{data.personal.email}</span>}
-                            {data.personal.phone && <span>{data.personal.phone}</span>}
-                        </div>
-                    </header>
-
-                    {data.summary && (
-                        <div className="resume-section">
-                            <h2 className="resume-section-title">Summary</h2>
-                            <p className="resume-text">{data.summary}</p>
-                        </div>
-                    )}
-
-                    {data.skills && Object.values(data.skills).some(cat => cat?.length > 0) && (
-                        <div className="resume-section">
-                            <h2 className="resume-section-title">Skills</h2>
-                            {Object.entries(data.skills).map(([cat, tags]) => tags?.length > 0 && (
-                                <div key={cat}>
-                                    <div className="skill-group-title">{cat === 'technical' ? 'Technical' : cat === 'soft' ? 'Soft Skills' : 'Tools'}</div>
-                                    <div className="skill-pills">
-                                        {tags.map((tag, idx) => <span key={idx} className="skill-pill">{tag}</span>)}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {data.projects.length > 0 && (
-                        <div className="resume-section">
-                            <h2 className="resume-section-title">Projects</h2>
-                            {data.projects.map((proj, i) => (
-                                <div key={i} className="project-preview-card">
-                                    <div className="project-preview-header">
-                                        <span className="resume-item-title">{proj.title || 'Project Title'}</span>
-                                        <div className="project-links">
-                                            {proj.githubUrl && <a href={proj.githubUrl} target="_blank" rel="noreferrer" className="project-link-icon"><Github size={14} /></a>}
-                                            {proj.liveUrl && <a href={proj.liveUrl} target="_blank" rel="noreferrer" className="project-link-icon"><ExternalLink size={14} /></a>}
+                <div style={{ position: 'sticky', top: '20px', zIndex: 10 }}>
+                    <div className="picker-panel">
+                        <div>
+                            <p className="picker-section-title">Select Template</p>
+                            <div className="template-grid">
+                                {['classic', 'modern', 'minimal'].map(t => (
+                                    <div key={t} className={`template-option ${template === t ? 'active' : ''}`} onClick={() => setTemplate(t)}>
+                                        <div className={`template-thumb thumb-${t}`}>
+                                            <div className="thumb-header"></div>
+                                            <div className="thumb-body">
+                                                <div className="thumb-main"></div>
+                                                {t === 'modern' && <div className="thumb-side"></div>}
+                                            </div>
                                         </div>
+                                        <span className="template-label">{t.charAt(0).toUpperCase() + t.slice(1)}</span>
+                                        {template === t && <div className="check-badge"><CheckCircle2 size={12} /></div>}
                                     </div>
-                                    <p className="resume-text" style={{ fontSize: '0.8rem' }}>{proj.desc}</p>
-                                    <div className="tech-pills">
-                                        {proj.techStack?.map((tech, idx) => <span key={idx} className="tech-pill">{tech}</span>)}
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                    )}
 
-                    {/* Minimalist preview for others */}
-                    {data.experience.length > 0 && (
-                        <div className="resume-section">
-                            <h2 className="resume-section-title">Experience</h2>
-                            {data.experience.map((exp, i) => (
-                                <div key={i} className="resume-item">
-                                    <div className="resume-item-header">
-                                        <span className="resume-item-title">{exp.company}</span>
-                                        <span className="resume-item-date">{exp.duration}</span>
+                        <div>
+                            <p className="picker-section-title">Color Theme</p>
+                            <div className="color-grid">
+                                {COLORS.map(c => (
+                                    <div key={c.name} className={`color-dot ${color === c.value ? 'active' : ''}`} style={{ background: c.value }} onClick={() => setColor(c.value)}>
+                                        {color === c.value && <CheckCircle2 size={18} color="white" />}
                                     </div>
-                                    <p className="resume-text">{exp.desc}</p>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                    )}
+                    </div>
+
+                    <div className={`resume-sheet resume-preview-scale resume-${template}`} style={{ '--accent-resume': color }}>
+                        {template === 'modern' ? (
+                            <div className="resume-modern">
+                                <aside className="modern-sidebar">
+                                    <header>
+                                        <h1 className="resume-name" style={{ color: 'white', fontSize: '1.5rem' }}>{data.personal.name || 'Your Name'}</h1>
+                                        {renderContact(true)}
+                                    </header>
+                                    {renderSkills(true)}
+                                </aside>
+                                <main className="modern-main">
+                                    {renderContent()}
+                                </main>
+                            </div>
+                        ) : (
+                            <>
+                                <header className="resume-header">
+                                    <h1 className="resume-name">{data.personal.name || 'Your Name'}</h1>
+                                    {renderContact(false)}
+                                </header>
+                                {template === 'classic' && renderSkills(false)}
+                                {renderContent()}
+                                {template === 'minimal' && renderSkills(false)}
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 {/* Score panel floating/sticky */}
@@ -382,8 +472,20 @@ const Builder = () => {
                     <div className="improvement-list">
                         {topImprovements.map((imp, idx) => <div key={idx} className="improvement-item">{imp}</div>)}
                     </div>
+                    <button className="btn btn-primary" style={{ width: '100%', marginTop: '20px' }} onClick={() => showToast('PDF export ready! Check your downloads.')}>
+                        <Download size={16} /> Download PDF
+                    </button>
                 </div>
             </div>
+
+            {toast && (
+                <div className="toast-container">
+                    <div className="toast">
+                        <CheckCircle2 size={20} color="var(--accent)" />
+                        {toast}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
