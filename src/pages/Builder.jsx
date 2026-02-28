@@ -159,39 +159,59 @@ const Builder = () => {
         let currentScore = 0;
         let improvements = [];
 
-        const summaryWords = data.summary.trim() ? data.summary.trim().split(/\s+/).length : 0;
-        if (summaryWords >= 40 && summaryWords <= 120) currentScore += 15;
-        else {
-            if (summaryWords < 40) improvements.push("Expand your summary to at least 40 words.");
-            if (summaryWords > 120) improvements.push("Shorten your summary to under 120 words.");
-        }
+        // Rules:
+        // +10 name
+        if (data.personal.name?.trim()) currentScore += 10;
+        else improvements.push({ text: "Add your full name", points: 10 });
 
-        if (data.projects.length >= 2) currentScore += 10;
-        else improvements.push("Add at least 2 technical projects.");
+        // +10 email
+        if (data.personal.email?.trim()) currentScore += 10;
+        else improvements.push({ text: "Add your email address", points: 10 });
 
-        if (data.experience.length >= 1) currentScore += 10;
-        else improvements.push("Add internship or project work to experience.");
+        // +5 phone
+        if (data.personal.phone?.trim()) currentScore += 5;
+        else improvements.push({ text: "Add your phone number", points: 5 });
 
-        const skillsCount = (data.skills?.technical?.length || 0) + (data.skills?.soft?.length || 0) + (data.skills?.tools?.length || 0);
-        if (skillsCount >= 8) currentScore += 10;
-        else improvements.push("List at least 8 relevant skills.");
+        // +5 LinkedIn
+        if (data.links?.linkedin?.trim()) currentScore += 5;
+        else improvements.push({ text: "Include your LinkedIn profile", points: 5 });
 
-        if (data.links.github.trim() || data.links.linkedin.trim()) currentScore += 10;
+        // +5 GitHub
+        if (data.links?.github?.trim()) currentScore += 5;
+        else improvements.push({ text: "Include your GitHub profile", points: 5 });
 
-        const hasNumbers = [...data.experience, ...data.projects].some(item => (item.desc && /\d/.test(item.desc)));
-        if (hasNumbers) currentScore += 15;
-        else improvements.push("Use numbers (%, X, k) to show scale of achievements.");
+        // +10 summary > 50 chars
+        const summaryText = data.summary?.trim() || '';
+        if (summaryText.length > 50) currentScore += 10;
+        else improvements.push({ text: "Write a summary (min 50 chars)", points: 10 });
 
-        const eduComplete = data.education.length > 0 && data.education.every(edu => edu.school && edu.degree && edu.year);
-        if (eduComplete) currentScore += 10;
+        // +10 summary action verbs
+        const hasVerb = ACTION_VERBS.some(v => summaryText.toLowerCase().includes(v));
+        if (hasVerb) currentScore += 10;
+        else improvements.push({ text: "Use action verbs in summary", points: 10 });
 
-        if (data.personal.name && data.personal.email) currentScore += 20;
+        // +15 experience with bullets
+        if (data.experience?.length > 0 && data.experience.some(e => e.desc?.trim())) currentScore += 15;
+        else improvements.push({ text: "Add an experience with description", points: 15 });
+
+        // +10 education
+        if (data.education?.length > 0) currentScore += 10;
+        else improvements.push({ text: "Add your educational background", points: 10 });
+
+        // +10 skills >= 5
+        const totalSkills = (data.skills?.technical?.length || 0) + (data.skills?.soft?.length || 0) + (data.skills?.tools?.length || 0);
+        if (totalSkills >= 5) currentScore += 10;
+        else improvements.push({ text: "Add at least 5 skills", points: 10 });
+
+        // +10 project
+        if (data.projects?.length > 0) currentScore += 10;
+        else improvements.push({ text: "Add at least one project", points: 10 });
 
         return { score: Math.min(currentScore, 100), topImprovements: improvements.slice(0, 3) };
     }, [data]);
 
     // Resume Sub-sections Rendering
-    const renderContact = (isModern) => (
+    const renderContact = () => (
         <div className="resume-contact">
             {data.personal.email && <span>{data.personal.email}</span>}
             {data.personal.phone && <span>{data.personal.phone}</span>}
@@ -199,13 +219,13 @@ const Builder = () => {
         </div>
     );
 
-    const renderSkills = (isModern) => (
+    const renderSkills = () => (
         data.skills && Object.values(data.skills).some(cat => cat?.length > 0) && (
             <div className="resume-section">
                 <h2 className="resume-section-title">Skills</h2>
                 {Object.entries(data.skills).map(([cat, tags]) => tags?.length > 0 && (
                     <div key={cat}>
-                        {!isModern && <div className="skill-group-title">{cat === 'technical' ? 'Technical' : cat === 'soft' ? 'Soft Skills' : 'Tools'}</div>}
+                        <div className="skill-group-title">{cat === 'technical' ? 'Technical' : cat === 'soft' ? 'Soft Skills' : 'Tools'}</div>
                         <div className="skill-pills">
                             {tags.map((tag, idx) => <span key={idx} className="skill-pill">{tag}</span>)}
                         </div>
@@ -443,9 +463,9 @@ const Builder = () => {
                                 <aside className="modern-sidebar">
                                     <header>
                                         <h1 className="resume-name" style={{ color: 'white', fontSize: '1.5rem' }}>{data.personal.name || 'Your Name'}</h1>
-                                        {renderContact(true)}
+                                        {renderContact()}
                                     </header>
-                                    {renderSkills(true)}
+                                    {renderSkills()}
                                 </aside>
                                 <main className="modern-main">
                                     {renderContent()}
@@ -455,11 +475,11 @@ const Builder = () => {
                             <>
                                 <header className="resume-header">
                                     <h1 className="resume-name">{data.personal.name || 'Your Name'}</h1>
-                                    {renderContact(false)}
+                                    {renderContact()}
                                 </header>
-                                {template === 'classic' && renderSkills(false)}
+                                {template === 'classic' && renderSkills()}
                                 {renderContent()}
-                                {template === 'minimal' && renderSkills(false)}
+                                {template === 'minimal' && renderSkills()}
                             </>
                         )}
                     </div>
@@ -470,7 +490,12 @@ const Builder = () => {
                     <p className="build-card-title">ATS Score</p>
                     <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary)' }}>{score}</div>
                     <div className="improvement-list">
-                        {topImprovements.map((imp, idx) => <div key={idx} className="improvement-item">{imp}</div>)}
+                        {topImprovements.map((imp, idx) => (
+                            <div key={idx} className="improvement-item">
+                                <span>{imp.text}</span>
+                                <span className="improvement-points">+{imp.points}</span>
+                            </div>
+                        ))}
                     </div>
                     <button className="btn btn-primary" style={{ width: '100%', marginTop: '20px' }} onClick={() => showToast('PDF export ready! Check your downloads.')}>
                         <Download size={16} /> Download PDF
