@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Layout, Check, Download, Printer, AlertTriangle, FileText, Github, Linkedin, ExternalLink, CheckCircle2, Award, Zap } from 'lucide-react';
+import { Check, Download, Printer, AlertTriangle, FileText, Github, Linkedin, ExternalLink, CheckCircle2, Award, Zap } from 'lucide-react';
 
 const ACTION_VERBS = ['built', 'developed', 'designed', 'implemented', 'led', 'improved', 'created', 'optimized', 'automated'];
 
@@ -9,14 +9,24 @@ const Preview = () => {
         const saved = localStorage.getItem('resumeBuilderData');
         if (!saved) return null;
         try {
-            return JSON.parse(saved);
+            const parsed = JSON.parse(saved);
+            return {
+                summary: parsed.summary || '',
+                education: Array.isArray(parsed.education) ? parsed.education : [],
+                experience: Array.isArray(parsed.experience) ? parsed.experience : [],
+                projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+                ...parsed,
+                personal: { name: '', email: '', phone: '', location: '', ...(parsed.personal || {}) },
+                skills: { technical: [], soft: [], tools: [], ...(parsed.skills || {}) },
+                links: { github: '', linkedin: '', ...(parsed.links || {}) }
+            };
         } catch (e) {
             console.error("Failed to parse saved data:", e);
             return null;
         }
     };
 
-    const [savedData, setSavedData] = useState(localStorage.getItem('resumeBuilderData'));
+    const [, setLastUpdated] = useState(0);
     const data = getInitialData();
 
     const savedTemplate = localStorage.getItem('resumeTemplate');
@@ -27,7 +37,7 @@ const Preview = () => {
 
     useEffect(() => {
         const handleStorage = () => {
-            setSavedData(localStorage.getItem('resumeBuilderData'));
+            setLastUpdated(prev => prev + 1);
         };
         window.addEventListener('storage', handleStorage);
         return () => window.removeEventListener('storage', handleStorage);
@@ -152,12 +162,12 @@ const Preview = () => {
 
     const renderContact = () => (
         <div className="resume-contact">
-            {data.personal.email && <span>{data.personal.email}</span>}
-            {data.personal.phone && <span>{data.personal.phone}</span>}
-            {data.personal.location && <span>{data.personal.location}</span>}
+            {data.personal?.email && <span>{data.personal.email}</span>}
+            {data.personal?.phone && <span>{data.personal.phone}</span>}
+            {data.personal?.location && <span>{data.personal.location}</span>}
             <div className="social-links-preview">
-                {data.links.linkedin && <a href={data.links.linkedin} target="_blank" rel="noreferrer"><Linkedin size={12} /> LinkedIn</a>}
-                {data.links.github && <a href={data.links.github} target="_blank" rel="noreferrer"><Github size={12} /> GitHub</a>}
+                {data.links?.linkedin && <a href={data.links.linkedin} target="_blank" rel="noreferrer"><Linkedin size={12} /> LinkedIn</a>}
+                {data.links?.github && <a href={data.links.github} target="_blank" rel="noreferrer"><Github size={12} /> GitHub</a>}
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Plus, Trash2, Database, Zap, AlertCircle, CheckCircle2, Layout, Sparkles, Wand2, X, ChevronDown, ChevronUp, Github, Linkedin, ExternalLink, Download } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Plus, Trash2, Database, Zap, AlertCircle, CheckCircle2, Sparkles, Wand2, X, ChevronDown, ChevronUp, Github, Linkedin, ExternalLink, Download } from 'lucide-react';
 
 const ACTION_VERBS = ['built', 'developed', 'designed', 'implemented', 'led', 'improved', 'created', 'optimized', 'automated'];
 
@@ -59,7 +59,18 @@ const Builder = () => {
         const saved = localStorage.getItem('resumeBuilderData');
         if (!saved) return initialState;
         try {
-            return JSON.parse(saved);
+            const parsed = JSON.parse(saved);
+            // Deep merge to ensure all expected keys exist even in old data
+            return {
+                ...initialState,
+                ...parsed,
+                personal: { ...initialState.personal, ...(parsed.personal || {}) },
+                skills: { ...initialState.skills, ...(parsed.skills || {}) },
+                links: { ...initialState.links, ...(parsed.links || {}) },
+                education: Array.isArray(parsed.education) ? parsed.education : initialState.education,
+                experience: Array.isArray(parsed.experience) ? parsed.experience : initialState.experience,
+                projects: Array.isArray(parsed.projects) ? parsed.projects : initialState.projects,
+            };
         } catch (e) {
             console.error("Failed to parse saved data:", e);
             return initialState;
