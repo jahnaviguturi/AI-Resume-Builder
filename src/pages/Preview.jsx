@@ -1,12 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Layout, Check, Download, Printer, AlertTriangle, FileText, Github, ExternalLink, CheckCircle2, Award, Zap } from 'lucide-react';
+import { Layout, Check, Download, Printer, AlertTriangle, FileText, Github, Linkedin, ExternalLink, CheckCircle2, Award, Zap } from 'lucide-react';
 
 const ACTION_VERBS = ['built', 'developed', 'designed', 'implemented', 'led', 'improved', 'created', 'optimized', 'automated'];
 
 const Preview = () => {
     // Load from localStorage
+    const getInitialData = () => {
+        const saved = localStorage.getItem('resumeBuilderData');
+        if (!saved) return null;
+        try {
+            return JSON.parse(saved);
+        } catch (e) {
+            console.error("Failed to parse saved data:", e);
+            return null;
+        }
+    };
+
     const [savedData, setSavedData] = useState(localStorage.getItem('resumeBuilderData'));
-    const data = savedData ? JSON.parse(savedData) : null;
+    const data = getInitialData();
 
     const savedTemplate = localStorage.getItem('resumeTemplate');
     const [template, setTemplate] = useState(savedTemplate || 'classic');
@@ -144,6 +155,10 @@ const Preview = () => {
             {data.personal.email && <span>{data.personal.email}</span>}
             {data.personal.phone && <span>{data.personal.phone}</span>}
             {data.personal.location && <span>{data.personal.location}</span>}
+            <div className="social-links-preview">
+                {data.links.linkedin && <a href={data.links.linkedin} target="_blank" rel="noreferrer"><Linkedin size={12} /> LinkedIn</a>}
+                {data.links.github && <a href={data.links.github} target="_blank" rel="noreferrer"><Github size={12} /> GitHub</a>}
+            </div>
         </div>
     );
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Plus, Trash2, Database, Zap, AlertCircle, CheckCircle2, Layout, Sparkles, Wand2, X, ChevronDown, ChevronUp, Github, ExternalLink, Download } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Plus, Trash2, Database, Zap, AlertCircle, CheckCircle2, Layout, Sparkles, Wand2, X, ChevronDown, ChevronUp, Github, Linkedin, ExternalLink, Download } from 'lucide-react';
 
 const ACTION_VERBS = ['built', 'developed', 'designed', 'implemented', 'led', 'improved', 'created', 'optimized', 'automated'];
 
@@ -55,8 +55,18 @@ const Builder = () => {
         links: { github: '', linkedin: '' }
     };
 
-    const savedData = localStorage.getItem('resumeBuilderData');
-    const [data, setData] = useState(savedData ? JSON.parse(savedData) : initialState);
+    const getInitialData = () => {
+        const saved = localStorage.getItem('resumeBuilderData');
+        if (!saved) return initialState;
+        try {
+            return JSON.parse(saved);
+        } catch (e) {
+            console.error("Failed to parse saved data:", e);
+            return initialState;
+        }
+    };
+
+    const [data, setData] = useState(getInitialData);
     const [template, setTemplate] = useState(localStorage.getItem('resumeTemplate') || 'classic');
     const [color, setColor] = useState(localStorage.getItem('resumeColor') || 'hsl(168, 60%, 40%)');
     const [isSuggesting, setIsSuggesting] = useState(false);
@@ -216,6 +226,10 @@ const Builder = () => {
             {data.personal.email && <span>{data.personal.email}</span>}
             {data.personal.phone && <span>{data.personal.phone}</span>}
             {data.personal.location && <span>{data.personal.location}</span>}
+            <div className="social-links-preview">
+                {data.links.linkedin && <a href={data.links.linkedin} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}><Linkedin size={12} /> LinkedIn</a>}
+                {data.links.github && <a href={data.links.github} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}><Github size={12} /> GitHub</a>}
+            </div>
         </div>
     );
 
@@ -312,6 +326,14 @@ const Builder = () => {
                         <div className="input-wrapper"><label className="label">Email</label><input className="input-field" value={data.personal.email} onChange={(e) => updatePersonal('email', e.target.value)} /></div>
                         <div className="input-wrapper"><label className="label">Phone</label><input className="input-field" value={data.personal.phone} onChange={(e) => updatePersonal('phone', e.target.value)} /></div>
                         <div className="input-wrapper"><label className="label">Location</label><input className="input-field" value={data.personal.location} onChange={(e) => updatePersonal('location', e.target.value)} /></div>
+                    </div>
+                </section>
+
+                <section className="form-section">
+                    <h3 className="form-section-title"><Globe size={20} /> Social Links</h3>
+                    <div className="input-group">
+                        <div className="input-wrapper"><label className="label">LinkedIn URL</label><input className="input-field" placeholder="linkedin.com/in/..." value={data.links.linkedin} onChange={(e) => setData({ ...data, links: { ...data.links, linkedin: e.target.value } })} /></div>
+                        <div className="input-wrapper"><label className="label">GitHub URL</label><input className="input-field" placeholder="github.com/..." value={data.links.github} onChange={(e) => setData({ ...data, links: { ...data.links, github: e.target.value } })} /></div>
                     </div>
                 </section>
 
@@ -416,8 +438,20 @@ const Builder = () => {
                     {data.education.map((item, i) => (
                         <div key={i} className="repeater-item">
                             <button onClick={() => removeItem('education', i)} style={{ position: 'absolute', top: '12px', right: '12px', color: 'var(--error)', border: 'none', background: 'none' }}><Trash2 size={16} /></button>
-                            <input className="input-box" placeholder="School" value={item.school} onChange={(e) => updateItem('education', i, 'school', e.target.value)} />
-                            <input className="input-box" placeholder="Degree" value={item.degree} onChange={(e) => updateItem('education', i, 'degree', e.target.value)} />
+                            <div className="input-group">
+                                <div className="input-wrapper">
+                                    <label className="label">School</label>
+                                    <input className="input-field" value={item.school} onChange={(e) => updateItem('education', i, 'school', e.target.value)} />
+                                </div>
+                                <div className="input-wrapper">
+                                    <label className="label">Degree</label>
+                                    <input className="input-field" value={item.degree} onChange={(e) => updateItem('education', i, 'degree', e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="input-wrapper" style={{ marginTop: '12px' }}>
+                                <label className="label">Year</label>
+                                <input className="input-field" value={item.year} onChange={(e) => updateItem('education', i, 'year', e.target.value)} />
+                            </div>
                         </div>
                     ))}
                 </section>
@@ -486,7 +520,7 @@ const Builder = () => {
                 </div>
 
                 {/* Score panel floating/sticky */}
-                <div className="build-card glass" style={{ position: 'fixed', top: '100px', right: '40px', width: '300px' }}>
+                <div className="build-card glass floating-score-card">
                     <p className="build-card-title">ATS Score</p>
                     <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary)' }}>{score}</div>
                     <div className="improvement-list">

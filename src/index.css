@@ -319,6 +319,22 @@ body {
   justify-content: center;
 }
 
+@media (max-width: 1024px) {
+  .builder-container {
+    flex-direction: column;
+    overflow-y: auto;
+    height: auto;
+  }
+
+  .builder-form,
+  .builder-preview {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    overflow-y: visible;
+  }
+}
+
 /* Resume Sheet */
 .resume-sheet {
   width: 210mm;
@@ -356,6 +372,41 @@ body {
   display: flex;
   justify-content: center;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+.social-links-preview {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.social-links-preview a {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.modern-sidebar .social-links-preview {
+  flex-direction: column;
+  align-items: flex-start;
+  width: auto;
+  margin-top: 15px;
+}
+
+.modern-sidebar .social-links-preview a {
+  color: white;
+  opacity: 0.8;
+}
+
+.modern-sidebar .social-links-preview a:hover {
+  opacity: 1;
 }
 
 .resume-section {
@@ -797,6 +848,25 @@ body {
   position: relative;
   overflow: hidden;
   opacity: 0.7;
+}
+
+.floating-score-card {
+  position: fixed;
+  top: 100px;
+  right: 40px;
+  width: 300px;
+  z-index: 100;
+}
+
+@media (max-width: 1024px) {
+  .floating-score-card {
+    position: relative;
+    top: 0;
+    right: 0;
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+  }
 }
 
 .loading-shimmer::after {
